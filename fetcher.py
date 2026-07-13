@@ -1,4 +1,4 @@
-"""fetcher.py — OverlineEdge v8 (Python 3.14 compatible)"""
+"""fetcher.py — OverlineEdge v8 + Weather/Density Integration (Python 3.14 compatible)"""
 from __future__ import annotations
 import asyncio, concurrent.futures, hashlib, json, logging, re
 from datetime import datetime
@@ -13,6 +13,7 @@ from app.services.odds_calc import (
     implied_to_american, build_implied_matrix, power_odds, vig_percent,
 )
 from app.services.odds_scraper import scrape_sport
+from app.services.weather_enricher import enrich_games_batch   # <-- INTEGRATION
 
 logger = logging.getLogger(__name__)
 _RESOLVER: VenueResolver | None = None
@@ -41,7 +42,6 @@ def _valid_american(value):
     return (100 <= value <= 9999) or (-9999 <= value <= -100)
 
 def _evidence_strings(book):
-    """Yield text plus semantic metadata from the exact odds-cell DOM."""
     yield str(book.get("raw") or ""), "cell_text"
     for key in ("value", "moneyline"):
         if book.get(key) is not None: yield str(book[key]), key
@@ -52,15 +52,12 @@ def _evidence_strings(book):
     for k,v in (book.get("attrs") or {}).items(): yield str(v), f"cell {k}".lower()
 
 def _extract_american(book):
-    """Deterministic price extraction: structured price fields first, signed text second.
-    Unsigned numbers are accepted only from a field explicitly labeled odds/price/moneyline."""
     candidates=[]
     for text, semantic in _evidence_strings(book):
         semantic_price = any(x in semantic for x in ("moneyline","american","odds","price","data-ml"))
         for token in _AMERICAN_RE.findall(text.replace("−", "-")):
             candidates.append((int(token), 3 if semantic_price else 1, "signed_semantic" if semantic_price else "signed_cell_text"))
         if semantic_price:
-            # Do not duplicate a signed value as unsigned: that would erase its sign.
             unsigned_text = _AMERICAN_RE.sub("", text.replace("−", "-"))
             for token in re.findall(r"(?<![\d.])(?:100|[1-9]\d{2,3})(?![\d.])", unsigned_text):
                 value=int(token)
@@ -72,7 +69,6 @@ def _extract_american(book):
     return value, next(x[2] for x in candidates if x[0]==value and x[1]==best)
 
 def _extract_point(book, bet_type):
-    """Extract line only from the line/value context, never from a price field."""
     candidates=[]
     for text, semantic in _evidence_strings(book):
         if any(x in semantic for x in ("moneyline","american","odds","price")): continue
@@ -85,7 +81,6 @@ def _extract_point(book, bet_type):
                 v=float(token)
                 if abs(v)<100: candidates.append(v)
     if not candidates:
-        # Visible cell text often contains both line and price: first sub-100 token is the line.
         for token in _NUMBER_RE.findall(str(book.get("raw") or "").replace("−","-")):
             v=float(token)
             if abs(v)<100: candidates.append(v); break
@@ -217,7 +212,6 @@ async def _fetch_kalshi(sport_label, client):
 
 
 def _parse_kalshi(markets):
-    """Keep title, subtitle and ticker context; retain last trade when no quote exists."""
     result = {}
     for m in markets:
         title = str(m.get("title") or "")
@@ -255,7 +249,6 @@ async def _fetch_poly(sport_label, client):
 
 
 def _parse_poly(markets):
-    """Preserve raw binary market semantics; price ownership is resolved after team matching."""
     result = {}
     for m in markets:
         question = str(m.get("question") or "")
@@ -279,21 +272,14 @@ def _parse_poly(markets):
 
 
 def _poly_for_game(raw, identity):
-    """Map Polymarket prices to teams only when the YES/outcome label identifies a canonical side.
-    Unknown semantics stay null; this prevents silent away/home inversion."""
     if not raw: return {}
     away, home = identity["away"].team, identity["home"].team
-    text = " | ".join([raw.get("question", ""), *raw.get("outcomes", [])])
-    # Resolve each outcome label individually. A team-named outcome gets its own price.
     resolved = []
     for label, price in zip(raw.get("outcomes", []), raw.get("outcome_prices", [])):
         team, score, _ = _resolver().resolve_team(identity["home"].league, label)
         resolved.append((team.team if team and score >= 0.90 else None, price))
     by_team = {team: price for team, price in resolved if team}
-    # Standard Yes/No market: infer the subject only from canonical team mention in question/context.
     if not by_team and {x.lower() for x in raw.get("outcomes", [])} >= {"yes", "no"}:
-        # A Yes/No price only belongs to a side when the question explicitly names one subject.
-        # If both teams only appear in shared event context, price ownership is ambiguous and remains null.
         q = raw.get("question", "")
         away_hit = _fold(away) in _fold(q) or (_tokens(away) <= _tokens(q))
         home_hit = _fold(home) in _fold(q) or (_tokens(home) <= _tokens(q))
@@ -357,13 +343,37 @@ async def build_sport(sport_label, sport_slug, client):
             "commence":gdata.get("time",""),"status":"scheduled",
             "per_book":pb,"spread":sp,"totals":tot,"consensus":cons,
             "data_quality": {"missing_prices": missing_prices, "rule": "no_imputation"},
-            "venue": {"name": identity["home"].venue, "city": identity["home"].city, "state": identity["home"].state, "lat": identity["home"].lat, "lon": identity["home"].lon, "elevation": identity["home"].elevation, "orientation_deg": identity["home"].orientation_deg, "orientation_label": identity["home"].orientation_label, "orientation_confidence": identity["home"].orientation_confidence},
+            "venue": {
+                "name": identity["home"].venue,
+                "city": identity["home"].city,
+                "state": identity["home"].state,
+                "lat": identity["home"].lat,
+                "lon": identity["home"].lon,
+                "elevation": identity["home"].elevation,
+                "orientation_deg": identity["home"].orientation_deg,
+                "orientation_label": identity["home"].orientation_label,
+                "orientation_confidence": identity["home"].orientation_confidence,
+                # weather key populated below by enrich_games_batch
+                "weather": None,
+            },
             "match_audit": {"away_score": identity["away_score"], "home_score": identity["home_score"], "kalshi_score": kalshi_match_score, "kalshi_method": kalshi_match_method, "polymarket_score": poly_match_score, "polymarket_method": poly_match_method},
             "kalshi":kal or {"home_implied":None,"american":None,"title":None,"volume":None},
             "polymarket":pol or {"home_implied":None,"away_implied":None,"american":None,"question":None},
             "implied_matrix_home":build_implied_matrix(nv_h,k_h,p_h,pow_h),
             "implied_matrix_away":build_implied_matrix(nv_a,k_a,p_a,pow_a),
         })
+
+    # -------------------------------------------------------------------------
+    # INTEGRATION: enrich all games with live weather + moist-air density
+    # Uses the same open-meteo API and physics as App 2
+    # -------------------------------------------------------------------------
+    try:
+        await enrich_games_batch(games, client)
+        logger.info("Weather enrichment complete for %s: %d games", sport_label, len(games))
+    except Exception as exc:
+        logger.warning("Weather enrichment failed for %s: %s", sport_label, exc)
+        # Non-fatal: odds data still returned, venue.weather stays None
+
     return {"games":games,"game_count":len(games),"last_updated":datetime.now().isoformat()}
 
 
