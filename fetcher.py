@@ -13,6 +13,7 @@ from app.services.odds_calc import (
     implied_to_american, build_implied_matrix, power_odds, vig_percent,
 )
 from app.services.odds_scraper import scrape_sport
+from app.services.weather_enricher import enrich_venue
 
 logger = logging.getLogger(__name__)
 _RESOLVER: VenueResolver | None = None
@@ -351,13 +352,37 @@ async def build_sport(sport_label, sport_slug, client):
         k_a   = round(100-k_h,4) if k_h is not None else None
         p_a   = pol.get("away_implied")
         gid   = hashlib.sha1(f"{sport_label}|{away}|{home}|{date_str}".encode()).hexdigest()[:12]
+
+        # --- Build venue block with weather enrichment (App 2 integration) ---
+        venue_block = {
+            "name":                  identity["home"].venue,
+            "city":                  identity["home"].city,
+            "state":                 identity["home"].state,
+            "lat":                   identity["home"].lat,
+            "lon":                   identity["home"].lon,
+            "elevation":             identity["home"].elevation,
+            "orientation_deg":       identity["home"].orientation_deg,
+            "orientation_label":     identity["home"].orientation_label,
+            "orientation_confidence":identity["home"].orientation_confidence,
+        }
+        try:
+            venue_block = await enrich_venue(
+                venue_block,
+                gdata.get("time", ""),
+                client,
+            )
+        except Exception as wx_exc:
+            logger.warning("Weather enrichment failed [%s] %s @ %s: %s", sport_label, away, home, wx_exc)
+            venue_block["weather_context"] = {"status": "enrichment_exception", "detail": str(wx_exc)}
+        # --- End weather enrichment ---
+
         games.append({
             "game_id":gid,"sport":sport_label,
             "title":f"{away} @ {home}","home":home,"away":away,
             "commence":gdata.get("time",""),"status":"scheduled",
             "per_book":pb,"spread":sp,"totals":tot,"consensus":cons,
             "data_quality": {"missing_prices": missing_prices, "rule": "no_imputation"},
-            "venue": {"name": identity["home"].venue, "city": identity["home"].city, "state": identity["home"].state, "lat": identity["home"].lat, "lon": identity["home"].lon, "elevation": identity["home"].elevation, "orientation_deg": identity["home"].orientation_deg, "orientation_label": identity["home"].orientation_label, "orientation_confidence": identity["home"].orientation_confidence},
+            "venue": venue_block,
             "match_audit": {"away_score": identity["away_score"], "home_score": identity["home_score"], "kalshi_score": kalshi_match_score, "kalshi_method": kalshi_match_method, "polymarket_score": poly_match_score, "polymarket_method": poly_match_method},
             "kalshi":kal or {"home_implied":None,"american":None,"title":None,"volume":None},
             "polymarket":pol or {"home_implied":None,"away_implied":None,"american":None,"question":None},
