@@ -8,6 +8,7 @@ SPORT_KEYS = {
     "nhl":   "nhl",
     "ncaaf": "ncaaf",
     "ncaab": "ncaab",
+    "wnba":  "wnba",   # INTEGRATION: added from App 2 league support
 }
 
 KALSHI_SERIES = {
@@ -17,6 +18,7 @@ KALSHI_SERIES = {
     "nhl":   ["KXNHLGAME"],
     "ncaaf": ["KXNCAAFGAME"],
     "ncaab": ["KXNCAABGAME"],
+    "wnba":  ["KXWNBAGAME"],   # INTEGRATION: WNBA Kalshi series
 }
 
 POLY_SERIES = {
@@ -26,6 +28,7 @@ POLY_SERIES = {
     "nhl":   10346,
     "ncaaf": 10210,
     "ncaab": 39,
+    "wnba":  10350,   # INTEGRATION: WNBA Polymarket series (verify/update if inactive)
 }
 
 FETCH_INTERVAL_SECONDS = 120
