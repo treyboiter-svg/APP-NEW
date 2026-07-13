@@ -1,4 +1,4 @@
-"""normalizer.py — OverlineEdge v8 (Python 3.14 compatible)"""
+"""normalizer.py — OverlineEdge v8 + WNBA Integration (Python 3.14 compatible)"""
 from __future__ import annotations
 import re
 from difflib import SequenceMatcher
@@ -152,6 +152,20 @@ _add("nhl","Maple Leafs","Toronto Maple Leafs","Maple Leafs","Leafs")
 _add("nhl","Canucks","Vancouver Canucks","Canucks")
 _add("nhl","Capitals","Washington Capitals","Capitals","Caps")
 _add("nhl","Jets","Winnipeg Jets","Winnipeg Jets")
+# WNBA (INTEGRATION: added from App 2 league support)
+_add("wnba","Dream","Atlanta Dream","Dream")
+_add("wnba","Sky","Chicago Sky","Sky")
+_add("wnba","Sun","Connecticut Sun","Sun")
+_add("wnba","Wings","Dallas Wings","Wings")
+_add("wnba","Fever","Indiana Fever","Fever")
+_add("wnba","Aces","Las Vegas Aces","Aces")
+_add("wnba","Sparks","Los Angeles Sparks","Sparks")
+_add("wnba","Lynx","Minnesota Lynx","Lynx")
+_add("wnba","Liberty","New York Liberty","Liberty")
+_add("wnba","Mercury","Phoenix Mercury","Mercury")
+_add("wnba","Storm","Seattle Storm","Storm")
+_add("wnba","Mystics","Washington Mystics","Mystics")
+_add("wnba","Valkyries","Golden State Valkyries","Valkyries","GS Valkyries")
 
 _TID: dict = {
     ("nfl","Cardinals"):"nfl_cardinals",("nfl","Falcons"):"nfl_falcons",
@@ -216,6 +230,14 @@ _TID: dict = {
     ("nhl","Lightning"):"nhl_lightning",("nhl","Maple Leafs"):"nhl_maple_leafs",
     ("nhl","Canucks"):"nhl_canucks",("nhl","Capitals"):"nhl_capitals",
     ("nhl","Jets"):"nhl_jets",
+    # WNBA
+    ("wnba","Dream"):"wnba_dream",("wnba","Sky"):"wnba_sky",
+    ("wnba","Sun"):"wnba_sun",("wnba","Wings"):"wnba_wings",
+    ("wnba","Fever"):"wnba_fever",("wnba","Aces"):"wnba_aces",
+    ("wnba","Sparks"):"wnba_sparks",("wnba","Lynx"):"wnba_lynx",
+    ("wnba","Liberty"):"wnba_liberty",("wnba","Mercury"):"wnba_mercury",
+    ("wnba","Storm"):"wnba_storm",("wnba","Mystics"):"wnba_mystics",
+    ("wnba","Valkyries"):"wnba_valkyries",
 }
 
 def normalize_team(raw: str, sport: str = "") -> str:
