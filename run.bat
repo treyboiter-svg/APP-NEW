@@ -1,66 +1,39 @@
 @echo off
-title OverlineEdge v8
-color 0A
-echo =============================================
-echo  OverlineEdge Odds Dashboard v8
-echo  (No Docker. No compiler. No API keys.)
-echo =============================================
-echo.
+REM ============================================================
+REM  OverlineEdge v8.3 — run.bat
+REM  Loads .env file (if present) then starts the FastAPI server
+REM ============================================================
 
-REM ---- Stay in the folder where run.bat lives ----
 cd /d "%~dp0"
 
-echo [Checking Python version...]
-python --version 2>&1
-if errorlevel 1 (
-    echo ERROR: Python not found. Install from https://www.python.org/downloads/
-    echo Make sure "Add Python to PATH" is checked during install.
-    pause
-    exit /b 1
+REM ---- Load .env (key=value lines, # comments ignored) -----
+if exist .env (
+    echo [OverlineEdge] Loading .env ...
+    for /f "usebackq eol=# tokens=1,* delims==" %%A in (".env") do (
+        if not "%%A"=="" if not "%%B"=="" (
+            set "%%A=%%B"
+        )
+    )
+    echo [OverlineEdge] .env loaded.
+) else (
+    echo [OverlineEdge] No .env file found - using existing environment variables.
 )
 
+REM ---- Diagnostic: show which keys are set (values hidden) --
 echo.
-echo [Step 0] Upgrading pip...
-python -m pip install --upgrade pip --quiet
-
-echo.
-echo [Step 1/3] Installing Python dependencies (pre-built wheels only)...
-python -m pip install -r requirements.txt --prefer-binary --upgrade
-if errorlevel 1 (
-    echo.
-    echo ============================================================
-    echo  INSTALL FAILED. See error above. Copy this window and
-    echo  report the full text.
-    echo ============================================================
-    pause
-    exit /b 1
-)
-
-echo.
-echo [Step 2/3] Installing Playwright Chromium (~100MB one-time)...
-python -m playwright install chromium
-if errorlevel 1 (
-    echo WARN: Playwright browser install issue. Scraping may be limited.
-)
-
-echo.
-echo =============================================
-echo  DONE. Starting OverlineEdge server...
-echo.
-echo  After the server starts, open in Chrome or Edge:
-echo    Double-click odds_dashboard_v8.html
-echo.
-echo  Health check : http://127.0.0.1:8000/api/health
-echo  Live trace   : http://127.0.0.1:8000/api/diagnostics/live
-echo  Diag summary : http://127.0.0.1:8000/api/diagnostics/run
-echo  Diag download: http://127.0.0.1:8000/api/diagnostics/download
-echo  Export CSV   : http://127.0.0.1:8000/api/export/all
-echo =============================================
+echo [OverlineEdge] API key status:
+if defined OPENWEATHER_API_KEY  (echo   OPENWEATHER_API_KEY  = SET) else (echo   OPENWEATHER_API_KEY  = NOT SET  ^(open-meteo fallback will be used^))
+if defined GOOGLE_ELEV_KEY      (echo   GOOGLE_ELEV_KEY      = SET) else (echo   GOOGLE_ELEV_KEY      = NOT SET  ^(open-meteo terrain fallback^))
+if defined GOOGLE_MAPS_KEY      (echo   GOOGLE_MAPS_KEY      = SET) else (echo   GOOGLE_MAPS_KEY      = NOT SET  ^(geocoding fallback disabled^))
+if defined OPENCAGEAPIKEY       (echo   OPENCAGEAPIKEY        = SET) else (echo   OPENCAGEAPIKEY        = NOT SET  ^(geocoding fallback disabled^))
 echo.
 
-echo [Step 3/3] Starting server...
-python -m uvicorn main:app --reload --port 8000
+REM ---- Ensure dependencies are up to date ------------------
+echo [OverlineEdge] Installing/verifying dependencies ...
+pip install -r requirements.txt -q
 
+REM ---- Start the server -------------------------------------
+echo [OverlineEdge] Starting server on http://127.0.0.1:8000
+echo [OverlineEdge] Open odds_dashboard_v8.html in your browser.
 echo.
-echo SERVER EXITED. See error above if unexpected.
-pause
+python -m uvicorn main:app --host 127.0.0.1 --port 8000 --reload

@@ -1,15 +1,32 @@
-"""Canonical, venue-backed identity resolution for OverlineEdge."""
+"""Canonical, venue-backed identity resolution for OverlineEdge v8.3.
+
+API augmentation (when workbook data is missing/None):
+  - OpenCage Geocoder  (OPENCAGEAPIKEY)   — lat/lon from venue name + city
+  - Google Maps        (GOOGLE_MAPS_KEY)  — fallback geocode
+  - Google Elevation   (GOOGLE_ELEV_KEY)  — elevation when workbook row has None
+
+Workbook convention:
+  elevation column = FEET  (all US venue altitudes stored in feet, not metres)
+"""
 from __future__ import annotations
+
+import asyncio
 import logging
+import os
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Iterable
 
+import httpx
 import pandas as pd
 
 logger = logging.getLogger(__name__)
+
+OPENCAGE_KEY = os.environ.get("OPENCAGEAPIKEY",  "")
+GMAPS_KEY    = os.environ.get("GOOGLE_MAPS_KEY", "")
+GELEV_KEY    = os.environ.get("GOOGLE_ELEV_KEY", "")
 
 LEAGUE_ALIASES = {
     "mlb": "MLB", "nfl": "NFL", "nba": "NBA", "nhl": "NHL",
@@ -22,20 +39,108 @@ NOISE_WORDS = {
     "moneyline", "ml", "home", "away", "team", "sports", "spread", "total", "over", "under",
 }
 
+
 @dataclass(frozen=True)
 class VenueTeam:
-    league: str
-    team: str
-    venue: str
-    city: str
-    state: str
-    lat: float | None
-    lon: float | None
-    elevation: float | None
-    orientation_deg: float | None
-    orientation_label: str | None
+    league:               str
+    team:                 str
+    venue:                str
+    city:                 str
+    state:                str
+    lat:                  float | None
+    lon:                  float | None
+    elevation:            float | None   # FEET
+    orientation_deg:      float | None
+    orientation_label:    str   | None
     orientation_confidence: float | None
 
+
+# ---------------------------------------------------------------------------
+# Async geocode + elevation helpers (used at runtime for unknown venues)
+# ---------------------------------------------------------------------------
+_GEO_CACHE: dict[str, tuple[float, float] | None] = {}
+_GEO_LOCK  = asyncio.Lock()
+
+
+async def geocode_venue(
+    name: str, city: str, state: str,
+    client: httpx.AsyncClient,
+) -> tuple[float, float] | None:
+    """Geocode a venue name to (lat, lon). OpenCage first, then Google Maps."""
+    query = f"{name}, {city}, {state}"
+    async with _GEO_LOCK:
+        if query in _GEO_CACHE:
+            return _GEO_CACHE[query]
+
+    result: tuple[float, float] | None = None
+
+    # Tier 1 — OpenCage
+    if OPENCAGE_KEY and result is None:
+        try:
+            url = (
+                f"https://api.opencagedata.com/geocode/v1/json"
+                f"?q={httpx.URL(query).params}&key={OPENCAGE_KEY}&limit=1&no_annotations=1"
+            )
+            r = await client.get(
+                "https://api.opencagedata.com/geocode/v1/json",
+                params={"q": query, "key": OPENCAGE_KEY, "limit": "1", "no_annotations": "1"},
+                timeout=10,
+            )
+            r.raise_for_status()
+            results = r.json().get("results", [])
+            if results:
+                geo = results[0]["geometry"]
+                result = (float(geo["lat"]), float(geo["lng"]))
+        except Exception as exc:
+            logger.debug("OpenCage geocode failed for %r: %s", query, exc)
+
+    # Tier 2 — Google Maps Geocoding
+    if GMAPS_KEY and result is None:
+        try:
+            r = await client.get(
+                "https://maps.googleapis.com/maps/api/geocode/json",
+                params={"address": query, "key": GMAPS_KEY},
+                timeout=10,
+            )
+            r.raise_for_status()
+            data = r.json()
+            glist = data.get("results", [])
+            if glist:
+                loc = glist[0]["geometry"]["location"]
+                result = (float(loc["lat"]), float(loc["lng"]))
+        except Exception as exc:
+            logger.debug("Google Maps geocode failed for %r: %s", query, exc)
+
+    async with _GEO_LOCK:
+        _GEO_CACHE[query] = result
+    return result
+
+
+async def lookup_elevation_ft(
+    lat: float, lon: float,
+    client: httpx.AsyncClient,
+) -> float | None:
+    """Look up elevation (metres from Google) → return as FEET."""
+    if not GELEV_KEY:
+        return None
+    try:
+        r = await client.get(
+            "https://maps.googleapis.com/maps/api/elevation/json",
+            params={"locations": f"{lat},{lon}", "key": GELEV_KEY},
+            timeout=10,
+        )
+        r.raise_for_status()
+        results = r.json().get("results", [])
+        if results:
+            return round(float(results[0]["elevation"]) * 3.28084, 1)  # metres → feet
+    except Exception as exc:
+        logger.debug("Google Elevation failed (%.4f,%.4f): %s", lat, lon, exc)
+    return None
+
+
+# ---------------------------------------------------------------------------
+# String helpers
+# ---------------------------------------------------------------------------
 
 def _fold(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", " ", str(value or "").lower()).strip()
@@ -50,7 +155,6 @@ def _camel_split(value: str) -> str:
 
 
 def clean_source_name(raw: str) -> str:
-    """Remove records, rankings, and final MLB pitcher/handedness suffixes."""
     s = _camel_split(str(raw or "").strip())
     s = re.sub("[ ]+[A-Za-z.'-]+[ ]*[(][LRlr][)][ ]*$", "", s)
     s = re.sub("[ ]*[0-9]{1,3}[-\u2013][0-9]{1,3}([-\u2013][0-9]{1,3})?[ ]*$", "", s)
@@ -58,75 +162,106 @@ def clean_source_name(raw: str) -> str:
     return " ".join(s.split())
 
 
+# ---------------------------------------------------------------------------
+# VenueResolver
+# ---------------------------------------------------------------------------
+
 class VenueResolver:
-    """Resolve every entity against the supplied venue master before joining odds."""
+    """Resolve every entity against the venue master workbook before joining odds."""
+
     def __init__(self, workbook: str | Path):
         p = Path(workbook)
         if not p.exists():
-            raise FileNotFoundError(f"Venue authority workbook not found: {p}")
+            raise FileNotFoundError(f"Venue workbook not found: {p}")
         df = pd.read_excel(p, sheet_name="ALL_VENUES")
         required = {"league", "team", "venue", "city", "state"}
         missing = required - set(df.columns)
         if missing:
-            raise ValueError(f"Venue workbook missing required columns: {sorted(missing)}")
+            raise ValueError(f"Venue workbook missing columns: {sorted(missing)}")
+
         self.rows: list[VenueTeam] = []
         self.by_league: dict[str, list[VenueTeam]] = {}
         for _, r in df.iterrows():
             row = VenueTeam(
-                league=str(r["league"]).strip(), team=str(r["team"]).strip(),
-                venue=str(r["venue"]).strip(), city=str(r["city"]).strip(), state=str(r["state"]).strip(),
-                lat=self._num(r.get("lat")), lon=self._num(r.get("lon")), elevation=self._num(r.get("elevation")),
-                orientation_deg=self._num(r.get("orientation_deg")), orientation_label=self._text(r.get("orientation_label")),
+                league=str(r["league"]).strip(),
+                team=str(r["team"]).strip(),
+                venue=str(r["venue"]).strip(),
+                city=str(r["city"]).strip(),
+                state=str(r["state"]).strip(),
+                lat=self._num(r.get("lat")),
+                lon=self._num(r.get("lon")),
+                elevation=self._num(r.get("elevation")),   # FEET
+                orientation_deg=self._num(r.get("orientation_deg")),
+                orientation_label=self._text(r.get("orientation_label")),
                 orientation_confidence=self._num(r.get("orientation_confidence")),
             )
-            self.rows.append(row); self.by_league.setdefault(row.league, []).append(row)
+            self.rows.append(row)
+            self.by_league.setdefault(row.league, []).append(row)
         self.aliases = self._build_aliases()
 
     @staticmethod
     def _num(v):
         return None if pd.isna(v) else float(v)
+
     @staticmethod
     def _text(v):
         return None if pd.isna(v) else str(v)
 
-    def _build_aliases(self):
-        aliases = {}
+    def _build_aliases(self) -> dict:
+        aliases: dict = {}
         token_counts: dict[tuple[str, str], int] = {}
         for row in self.rows:
             for token in _tokens(row.team):
-                token_counts[(row.league, token)] = token_counts.get((row.league, token), 0) + 1
+                k = (row.league, token)
+                token_counts[k] = token_counts.get(k, 0) + 1
         for row in self.rows:
-            key = (row.league, _fold(row.team)); aliases[key] = row
+            key = (row.league, _fold(row.team))
+            aliases[key] = row
             parts = _tokens(row.team)
             if parts:
                 aliases[(row.league, " ".join(sorted(parts)))] = row
-                team_words = _fold(row.team).split()
-                if len(team_words) >= 2:
-                    aliases[(row.league, " ".join(team_words[-2:]))] = row
+                words = _fold(row.team).split()
+                if len(words) >= 2:
+                    aliases[(row.league, " ".join(words[-2:]))] = row
                 for token in parts:
                     if token_counts.get((row.league, token)) == 1:
                         aliases[(row.league, token)] = row
         manual = {
-            ("MLB", "a s"): "Athletics", ("MLB", "oakland athletics"): "Athletics",
-            ("MLB", "sacramento athletics"): "Athletics", ("NFL", "niners"): "San Francisco 49ers",
-            ("NBA", "cavs"): "Cleveland Cavaliers", ("NBA", "sixers"): "Philadelphia 76ers",
-            ("NHL", "habs"): "Montreal Canadiens", ("NHL", "avs"): "Colorado Avalanche",
+            ("MLB", "a s"):                  "Athletics",
+            ("MLB", "oakland athletics"):    "Athletics",
+            ("MLB", "sacramento athletics"): "Athletics",
+            ("NFL", "niners"):               "San Francisco 49ers",
+            ("NBA", "cavs"):                 "Cleveland Cavaliers",
+            ("NBA", "sixers"):               "Philadelphia 76ers",
+            ("NHL", "habs"):                 "Montreal Canadiens",
+            ("NHL", "avs"):                  "Colorado Avalanche",
         }
-        for (league, alias), team in manual.items():
-            match = next((r for r in self.by_league.get(league, []) if r.team == team), None)
-            if match: aliases[(league, _fold(alias))] = match
+        for (league, alias), team_name in manual.items():
+            match = next(
+                (r for r in self.by_league.get(league, []) if r.team == team_name), None
+            )
+            if match:
+                aliases[(league, _fold(alias))] = match
         return aliases
 
     def canonical_league(self, sport: str) -> str:
         return LEAGUE_ALIASES.get(str(sport).lower(), str(sport))
 
-    def resolve_team(self, sport: str, raw_name: str, *, min_score: float = 0.78) -> tuple[VenueTeam | None, float, str]:
-        league = self.canonical_league(sport); cleaned = clean_source_name(raw_name); folded = _fold(cleaned)
-        if not folded: return None, 0.0, cleaned
+    def resolve_team(
+        self, sport: str, raw_name: str, *, min_score: float = 0.78
+    ) -> tuple[VenueTeam | None, float, str]:
+        league  = self.canonical_league(sport)
+        cleaned = clean_source_name(raw_name)
+        folded  = _fold(cleaned)
+        if not folded:
+            return None, 0.0, cleaned
+
         direct = self.aliases.get((league, folded))
-        if direct: return direct, 1.0, cleaned
+        if direct:
+            return direct, 1.0, cleaned
+
         raw_tokens = _tokens(cleaned)
-        contained = []
+        contained  = []
         for (alias_league, alias), row in self.aliases.items():
             alias_tokens = set(alias.split())
             if alias_league == league and alias_tokens and alias_tokens <= raw_tokens:
@@ -134,47 +269,60 @@ class VenueResolver:
         if contained:
             contained.sort(key=lambda x: x[0], reverse=True)
             return contained[0][1], 1.0, cleaned
+
         best, best_score = None, 0.0
         for row in self.by_league.get(league, []):
-            team_fold = _fold(row.team); team_tokens = _tokens(row.team)
-            overlap = len(raw_tokens & team_tokens) / max(1, len(team_tokens))
-            ratio = SequenceMatcher(None, folded, team_fold).ratio()
-            city_ratio = 1.0 if _fold(row.city) in folded else 0.0
-            score = max(overlap, ratio, min(1.0, 0.70 * overlap + 0.30 * city_ratio))
-            if score > best_score: best, best_score = row, score
+            team_fold   = _fold(row.team)
+            team_tokens = _tokens(row.team)
+            overlap     = len(raw_tokens & team_tokens) / max(1, len(team_tokens))
+            ratio       = SequenceMatcher(None, folded, team_fold).ratio()
+            city_ratio  = 1.0 if _fold(row.city) in folded else 0.0
+            score       = max(overlap, ratio, min(1.0, 0.70 * overlap + 0.30 * city_ratio))
+            if score > best_score:
+                best, best_score = row, score
         return (best if best_score >= min_score else None), best_score, cleaned
 
-    def validate_game(self, sport: str, away_raw: str, home_raw: str) -> dict:
+    def validate_game(
+        self, sport: str, away_raw: str, home_raw: str
+    ) -> dict:
         away, away_score, away_clean = self.resolve_team(sport, away_raw)
         home, home_score, home_clean = self.resolve_team(sport, home_raw)
         accepted = bool(away and home and away.team != home.team)
-        reason = "accepted" if accepted else "unresolved_team_or_same_team"
         return {
-            "accepted": accepted, "reason": reason,
-            "away": away, "home": home,
-            "away_clean": away_clean, "home_clean": home_clean,
-            "away_score": round(away_score, 4), "home_score": round(home_score, 4),
+            "accepted":   accepted,
+            "reason":     "accepted" if accepted else "unresolved_team_or_same_team",
+            "away":       away,
+            "home":       home,
+            "away_clean": away_clean,
+            "home_clean": home_clean,
+            "away_score": round(away_score, 4),
+            "home_score": round(home_score, 4),
         }
 
-    def match_market(self, game: dict, candidates: Iterable[str]) -> tuple[str | None, float, str]:
-        """Require BOTH canonical teams in a prediction-market title before fuzzy fallback."""
+    def match_market(
+        self, game: dict, candidates: Iterable[str]
+    ) -> tuple[str | None, float, str]:
+        """Require BOTH canonical teams in a prediction-market title."""
         away, home = game["away"], game["home"]
         away_tokens, home_tokens = _tokens(away.team), _tokens(home.team)
         best_key, best_score, method = None, 0.0, "none"
         for candidate in candidates:
-            ct = _tokens(candidate)
-            away_hit = len(away_tokens & ct) / max(1, len(away_tokens))
-            home_hit = len(home_tokens & ct) / max(1, len(home_tokens))
-            venue_hit = 1.0 if _fold(home.city) in _fold(candidate) or _fold(home.venue) in _fold(candidate) else 0.0
+            ct         = _tokens(candidate)
+            away_hit   = len(away_tokens & ct) / max(1, len(away_tokens))
+            home_hit   = len(home_tokens & ct) / max(1, len(home_tokens))
+            venue_hit  = (
+                1.0 if _fold(home.city) in _fold(candidate)
+                     or _fold(home.venue) in _fold(candidate)
+                else 0.0
+            )
             if away_hit >= 0.5 and home_hit >= 0.5:
                 score = 0.45 * away_hit + 0.45 * home_hit + 0.10 * venue_hit
-                if score > best_score: best_key, best_score, method = candidate, score, "both_canonical_teams"
+                if score > best_score:
+                    best_key, best_score, method = candidate, score, "both_canonical_teams"
         if best_score >= 0.78:
             return best_key, round(best_score, 4), method
         return None, round(best_score, 4), "rejected_missing_both_teams"
 
 
 def default_workbook_path() -> Path:
-    # The xlsx file lives in the SAME directory as this file (the project root).
-    # parents[0] = directory containing venue_resolver.py = project root.
     return Path(__file__).resolve().parent / "US_SPORTS_VENUES_MASTER_CORRECTED_V2.xlsx"
