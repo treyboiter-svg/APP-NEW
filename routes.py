@@ -1,20 +1,29 @@
-import csv, io, json, logging
+"""routes.py — OverlineEdge v8 API routes.
+Imports directly from root-level service files. Zero app.* indirection.
+"""
+import csv
+import io
+import json
+import logging
+import zipfile
 from datetime import datetime
 from pathlib import Path
 
 import httpx
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import StreamingResponse, PlainTextResponse, FileResponse
+from fastapi.responses import FileResponse, PlainTextResponse, StreamingResponse
 
-from app.services.fetcher import build_all_sports, build_sport
-from app.services.diagnostics import write_run_diagnostic, RUN_TRACE
-from app.core.config import SPORT_KEYS, LOG_DIR
+from fetcher import build_all_sports, build_sport
+from diagnostics import write_run_diagnostic, RUN_TRACE
+from config import SPORT_KEYS, LOG_DIR
 
-router     = APIRouter()
-logger     = logging.getLogger(__name__)
-_cache: dict              = {}
+router = APIRouter()
+logger = logging.getLogger(__name__)
+
+_cache: dict = {}
 _cache_time: datetime | None = None
-_TTL = 120
+_TTL = 120  # seconds
+
 
 async def _get_cached():
     global _cache, _cache_time
@@ -22,25 +31,30 @@ async def _get_cached():
     if _cache_time and (now - _cache_time).total_seconds() < _TTL and _cache:
         return _cache
     RUN_TRACE.reset()
-    _cache      = await build_all_sports()
+    _cache = await build_all_sports()
     _cache_time = now
-    _write_log(_cache)
+    _write_jsonl_log(_cache)
     write_run_diagnostic(_cache)
     return _cache
 
-def _write_log(data):
+
+def _write_jsonl_log(data):
     Path(LOG_DIR).mkdir(parents=True, exist_ok=True)
     lp = Path(LOG_DIR) / f"{datetime.now().strftime('%Y-%m-%d')}.jsonl"
     with open(lp, "a", encoding="utf-8") as f:
         f.write(json.dumps({"timestamp": datetime.now().isoformat(), "data": data}) + "\n")
 
-_HDR = ["Sport","Matchup","Time","Away","Home",
-        "Cons_Away_ML","Cons_Home_ML","Away_Raw%","Home_Raw%",
-        "Away_NoVig%","Home_NoVig%","Power_Away%","Power_Home%",
-        "Kalshi%","Kalshi_Disp%","Kalshi_EV%",
-        "Poly%","Poly_Disp%","Poly_EV%",
-        "Spread_Pt","Total_Pt","Avg_Vig%",
-        "AirDensity_kgm3","Density_Pct_ISA","Temp_F","RH_Pct","Wind_MPH","Wx_Status"]
+
+_HDR = [
+    "Sport", "Matchup", "Time", "Away", "Home",
+    "Cons_Away_ML", "Cons_Home_ML", "Away_Raw%", "Home_Raw%",
+    "Away_NoVig%", "Home_NoVig%", "Power_Away%", "Power_Home%",
+    "Kalshi%", "Kalshi_Disp%", "Kalshi_EV%",
+    "Poly%", "Poly_Disp%", "Poly_EV%",
+    "Spread_Pt", "Total_Pt", "Avg_Vig%",
+    "AirDensity_kgm3", "Density_Pct_ISA", "Temp_F", "RH_Pct", "Wind_MPH", "Wx_Status",
+]
+
 
 def _row(sl, g):
     c   = g.get("consensus", {})
@@ -69,18 +83,27 @@ def _row(sl, g):
         wx.get("wind_speed_mph", ""), wx.get("status", ""),
     ]
 
+
 def _to_csv(rows):
     buf = io.StringIO()
-    w   = csv.writer(buf)
-    w.writerow(_HDR)
-    w.writerows(rows)
+    csv.writer(buf).writerow(_HDR)
+    csv.writer(buf).writerows(rows)
     buf.seek(0)
     return buf
 
-# ---- Core dashboard endpoints ----
+
+# ── Core endpoints ────────────────────────────────────────────────────────────
+
+@router.get("/api/health")
+async def health():
+    age = int((datetime.now() - _cache_time).total_seconds()) if _cache_time else None
+    return {"status": "ok", "cache_age_seconds": age, "sports": list(_cache.keys()) if _cache else []}
+
+
 @router.get("/api/dashboard")
 async def dashboard():
     return await _get_cached()
+
 
 @router.get("/api/dashboard/{sl}")
 async def dash_sport(sl: str):
@@ -90,10 +113,12 @@ async def dash_sport(sl: str):
     async with httpx.AsyncClient() as c:
         return await build_sport(sl, SPORT_KEYS[sl], c)
 
-# ---- Export endpoints ----
+
+# ── Export endpoints ──────────────────────────────────────────────────────────
+
 @router.get("/api/export/all")
 async def exp_all():
-    d    = await _get_cached()
+    d = await _get_cached()
     rows = [_row(sl, g) for sl, sd in d.items() for g in sd.get("games", [])]
     date = datetime.now().strftime("%Y-%m-%d")
     return StreamingResponse(
@@ -101,10 +126,11 @@ async def exp_all():
         headers={"Content-Disposition": f"attachment; filename=overlineedge_all_{date}.csv"},
     )
 
+
 @router.get("/api/export/{sl}")
 async def exp_sport(sl: str):
-    sl   = sl.lower()
-    d    = await _get_cached()
+    sl = sl.lower()
+    d  = await _get_cached()
     rows = [_row(sl, g) for g in d.get(sl, {}).get("games", [])]
     date = datetime.now().strftime("%Y-%m-%d")
     return StreamingResponse(
@@ -112,13 +138,9 @@ async def exp_sport(sl: str):
         headers={"Content-Disposition": f"attachment; filename=overlineedge_{sl}_{date}.csv"},
     )
 
-# ---- Health ----
-@router.get("/api/health")
-async def health():
-    age = int((datetime.now() - _cache_time).total_seconds()) if _cache_time else None
-    return {"status": "ok", "cache_age_seconds": age, "sports": list(_cache.keys()) if _cache else []}
 
-# ---- JSONL log endpoints ----
+# ── Log endpoints ─────────────────────────────────────────────────────────────
+
 @router.get("/api/logs/{date}")
 async def get_log(date: str):
     lp = Path(LOG_DIR) / f"{date}.jsonl"
@@ -127,19 +149,18 @@ async def get_log(date: str):
     entries = []
     with open(lp, encoding="utf-8") as f:
         for line in f:
-            try: entries.append(json.loads(line))
-            except Exception: pass
+            try:
+                entries.append(json.loads(line))
+            except Exception:
+                pass
     return {"date": date, "entries": len(entries), "log": entries}
 
-# ---- Server log download ----
+
 @router.get("/api/logs/server/download")
 async def download_server_log():
     lp = Path("data/logs/server.log")
     if not lp.exists():
-        return PlainTextResponse(
-            "No server.log yet. Start the server and let it run, then retry.",
-            media_type="text/plain",
-        )
+        return PlainTextResponse("No server.log yet. Start the server and retry.", media_type="text/plain")
     text = lp.read_text(encoding="utf-8", errors="replace")
     date = datetime.now().strftime("%Y-%m-%d")
     return PlainTextResponse(
@@ -147,54 +168,11 @@ async def download_server_log():
         headers={"Content-Disposition": f"attachment; filename=overlineedge_server_log_{date}.txt"},
     )
 
-# ---- Diagnostic download (ZIP) ----
-@router.get("/api/diagnostics/download")
-async def download_latest_diagnostic():
-    files = sorted(
-        Path("data/diagnostics").glob("OverlineEdge_RunDiagnostic_*.zip"),
-        key=lambda p: p.stat().st_mtime, reverse=True
-    )
-    if not files:
-        raise HTTPException(404, "No diagnostic ZIP yet. Hit /api/dashboard first.")
-    return FileResponse(
-        str(files[0]),
-        media_type="application/zip",
-        filename=files[0].name,
-    )
 
-# ---- Diagnostic run summary (JSON, human-readable) ----
-@router.get("/api/diagnostics/run")
-async def diagnostic_run():
-    files = sorted(
-        Path("data/diagnostics").glob("OverlineEdge_RunDiagnostic_*.zip"),
-        key=lambda p: p.stat().st_mtime, reverse=True
-    )
-    if not files:
-        raise HTTPException(404, "No diagnostic yet. Hit /api/dashboard first.")
-    latest = files[0]
-    result = {
-        "latest_diagnostic": latest.name,
-        "created_at":        datetime.fromtimestamp(latest.stat().st_mtime).isoformat(),
-        "size_bytes":        latest.stat().st_size,
-        "download_url":      "http://127.0.0.1:8000/api/diagnostics/download",
-        "all_diagnostics":   [{"name": f.name, "size_bytes": f.stat().st_size,
-                               "created_at": datetime.fromtimestamp(f.stat().st_mtime).isoformat()}
-                              for f in files[:10]],
-    }
-    # Also extract SUMMARY.txt from the latest ZIP and inline it
-    try:
-        import zipfile as _zf
-        with _zf.ZipFile(latest) as z:
-            if "SUMMARY.txt" in z.namelist():
-                result["summary_text"] = z.read("SUMMARY.txt").decode("utf-8", errors="replace")
-    except Exception:
-        pass
-    return result
+# ── Diagnostic endpoints ──────────────────────────────────────────────────────
 
-# ---- Live trace status (current in-memory RUN_TRACE) ----
 @router.get("/api/diagnostics/live")
 async def diagnostic_live():
-    """Real-time view of the current/last build trace without waiting for ZIP."""
     return {
         "run_start_utc":      RUN_TRACE.run_start_utc,
         "total_elapsed_ms":   RUN_TRACE.total_elapsed_ms(),
@@ -207,12 +185,52 @@ async def diagnostic_live():
         "norm_events_count":  len(RUN_TRACE.norm_events),
     }
 
-@router.get("/api/diagnostics/latest")
-async def latest_diagnostic():
-    """Legacy endpoint — now use /api/diagnostics/run or /api/diagnostics/download."""
+
+@router.get("/api/diagnostics/download")
+async def download_latest_diagnostic():
     files = sorted(
         Path("data/diagnostics").glob("OverlineEdge_RunDiagnostic_*.zip"),
-        key=lambda p: p.stat().st_mtime, reverse=True
+        key=lambda p: p.stat().st_mtime, reverse=True,
+    )
+    if not files:
+        raise HTTPException(404, "No diagnostic ZIP yet. Hit /api/dashboard first.")
+    return FileResponse(str(files[0]), media_type="application/zip", filename=files[0].name)
+
+
+@router.get("/api/diagnostics/run")
+async def diagnostic_run():
+    files = sorted(
+        Path("data/diagnostics").glob("OverlineEdge_RunDiagnostic_*.zip"),
+        key=lambda p: p.stat().st_mtime, reverse=True,
+    )
+    if not files:
+        raise HTTPException(404, "No diagnostic yet. Hit /api/dashboard first.")
+    latest = files[0]
+    result = {
+        "latest_diagnostic": latest.name,
+        "created_at":        datetime.fromtimestamp(latest.stat().st_mtime).isoformat(),
+        "size_bytes":        latest.stat().st_size,
+        "download_url":      "http://127.0.0.1:8000/api/diagnostics/download",
+        "all_diagnostics":   [
+            {"name": f.name, "size_bytes": f.stat().st_size,
+             "created_at": datetime.fromtimestamp(f.stat().st_mtime).isoformat()}
+            for f in files[:10]
+        ],
+    }
+    try:
+        with zipfile.ZipFile(latest) as z:
+            if "SUMMARY.txt" in z.namelist():
+                result["summary_text"] = z.read("SUMMARY.txt").decode("utf-8", errors="replace")
+    except Exception:
+        pass
+    return result
+
+
+@router.get("/api/diagnostics/latest")
+async def latest_diagnostic():
+    files = sorted(
+        Path("data/diagnostics").glob("OverlineEdge_RunDiagnostic_*.zip"),
+        key=lambda p: p.stat().st_mtime, reverse=True,
     )
     if not files:
         raise HTTPException(404, "No run diagnostic has been generated yet")
