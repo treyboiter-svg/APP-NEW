@@ -1,12 +1,9 @@
-"""Canonical, venue-backed identity resolution for OverlineEdge v8.3.
+"""Canonical, venue-backed identity resolution for OverlineEdge v8.3.1.
 
-API augmentation (when workbook data is missing/None):
-  - OpenCage Geocoder  (OPENCAGEAPIKEY)   — lat/lon from venue name + city
-  - Google Maps        (GOOGLE_MAPS_KEY)  — fallback geocode
-  - Google Elevation   (GOOGLE_ELEV_KEY)  — elevation when workbook row has None
-
-Workbook convention:
-  elevation column = FEET  (all US venue altitudes stored in feet, not metres)
+FIX v8.3.1:
+  - asyncio.Lock objects created lazily (NOT at module level) — Python 3.14 safe.
+  - Full WNBA nickname table added to manual aliases:
+    Mercury, Lynx, Sparks, Dream, Sky, Wings, Sun, Storm, Fever, Aces, Mystics, Liberty
 """
 from __future__ import annotations
 
@@ -14,7 +11,7 @@ import asyncio
 import logging
 import os
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Iterable
@@ -29,8 +26,13 @@ GMAPS_KEY    = os.environ.get("GOOGLE_MAPS_KEY", "")
 GELEV_KEY    = os.environ.get("GOOGLE_ELEV_KEY", "")
 
 LEAGUE_ALIASES = {
-    "mlb": "MLB", "nfl": "NFL", "nba": "NBA", "nhl": "NHL",
-    "ncaaf": "NCAA FBS", "ncaab": "NCAA D1 MBB",
+    "mlb":   "MLB",
+    "nfl":   "NFL",
+    "nba":   "NBA",
+    "nhl":   "NHL",
+    "ncaaf": "NCAA FBS",
+    "ncaab": "NCAA D1 MBB",
+    "wnba":  "WNBA",
 }
 
 NOISE_WORDS = {
@@ -56,31 +58,36 @@ class VenueTeam:
 
 
 # ---------------------------------------------------------------------------
-# Async geocode + elevation helpers (used at runtime for unknown venues)
+# Lazy locks
 # ---------------------------------------------------------------------------
-_GEO_CACHE: dict[str, tuple[float, float] | None] = {}
-_GEO_LOCK  = asyncio.Lock()
+_geo_lock_obj: asyncio.Lock | None = None
+_GEO_CACHE: dict = {}
 
+
+def _get_geo_lock() -> asyncio.Lock:
+    global _geo_lock_obj
+    if _geo_lock_obj is None:
+        _geo_lock_obj = asyncio.Lock()
+    return _geo_lock_obj
+
+
+# ---------------------------------------------------------------------------
+# Async geocode helpers
+# ---------------------------------------------------------------------------
 
 async def geocode_venue(
     name: str, city: str, state: str,
     client: httpx.AsyncClient,
 ) -> tuple[float, float] | None:
-    """Geocode a venue name to (lat, lon). OpenCage first, then Google Maps."""
     query = f"{name}, {city}, {state}"
-    async with _GEO_LOCK:
+    async with _get_geo_lock():
         if query in _GEO_CACHE:
             return _GEO_CACHE[query]
 
     result: tuple[float, float] | None = None
 
-    # Tier 1 — OpenCage
     if OPENCAGE_KEY and result is None:
         try:
-            url = (
-                f"https://api.opencagedata.com/geocode/v1/json"
-                f"?q={httpx.URL(query).params}&key={OPENCAGE_KEY}&limit=1&no_annotations=1"
-            )
             r = await client.get(
                 "https://api.opencagedata.com/geocode/v1/json",
                 params={"q": query, "key": OPENCAGE_KEY, "limit": "1", "no_annotations": "1"},
@@ -92,9 +99,8 @@ async def geocode_venue(
                 geo = results[0]["geometry"]
                 result = (float(geo["lat"]), float(geo["lng"]))
         except Exception as exc:
-            logger.debug("OpenCage geocode failed for %r: %s", query, exc)
+            logger.debug("OpenCage geocode failed %r: %s", query, exc)
 
-    # Tier 2 — Google Maps Geocoding
     if GMAPS_KEY and result is None:
         try:
             r = await client.get(
@@ -103,15 +109,14 @@ async def geocode_venue(
                 timeout=10,
             )
             r.raise_for_status()
-            data = r.json()
-            glist = data.get("results", [])
+            glist = r.json().get("results", [])
             if glist:
                 loc = glist[0]["geometry"]["location"]
                 result = (float(loc["lat"]), float(loc["lng"]))
         except Exception as exc:
-            logger.debug("Google Maps geocode failed for %r: %s", query, exc)
+            logger.debug("Google Maps geocode failed %r: %s", query, exc)
 
-    async with _GEO_LOCK:
+    async with _get_geo_lock():
         _GEO_CACHE[query] = result
     return result
 
@@ -120,7 +125,6 @@ async def lookup_elevation_ft(
     lat: float, lon: float,
     client: httpx.AsyncClient,
 ) -> float | None:
-    """Look up elevation (metres from Google) → return as FEET."""
     if not GELEV_KEY:
         return None
     try:
@@ -132,7 +136,7 @@ async def lookup_elevation_ft(
         r.raise_for_status()
         results = r.json().get("results", [])
         if results:
-            return round(float(results[0]["elevation"]) * 3.28084, 1)  # metres → feet
+            return round(float(results[0]["elevation"]) * 3.28084, 1)
     except Exception as exc:
         logger.debug("Google Elevation failed (%.4f,%.4f): %s", lat, lon, exc)
     return None
@@ -163,6 +167,66 @@ def clean_source_name(raw: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Manual nickname tables — sport → {nickname: full canonical team name}
+# These are applied AFTER the workbook alias table is built.
+# ---------------------------------------------------------------------------
+_MANUAL_ALIASES: dict[tuple[str, str], str] = {
+    # MLB
+    ("MLB", "a s"):                    "Athletics",
+    ("MLB", "oakland athletics"):      "Athletics",
+    ("MLB", "sacramento athletics"):   "Athletics",
+    # NFL
+    ("NFL", "niners"):                 "San Francisco 49ers",
+    ("NFL", "pats"):                   "New England Patriots",
+    ("NFL", "boys"):                   "Dallas Cowboys",
+    # NBA
+    ("NBA", "cavs"):                   "Cleveland Cavaliers",
+    ("NBA", "sixers"):                 "Philadelphia 76ers",
+    ("NBA", "blazers"):                "Portland Trail Blazers",
+    ("NBA", "wolves"):                 "Minnesota Timberwolves",
+    ("NBA", "dubs"):                   "Golden State Warriors",
+    # NHL
+    ("NHL", "habs"):                   "Montreal Canadiens",
+    ("NHL", "avs"):                    "Colorado Avalanche",
+    ("NHL", "bolts"):                  "Tampa Bay Lightning",
+    # WNBA — sportsbooks routinely send only the mascot word
+    ("WNBA", "mercury"):              "Phoenix Mercury",
+    ("WNBA", "phoenix mercury"):      "Phoenix Mercury",
+    ("WNBA", "lynx"):                 "Minnesota Lynx",
+    ("WNBA", "minnesota lynx"):       "Minnesota Lynx",
+    ("WNBA", "sparks"):               "Los Angeles Sparks",
+    ("WNBA", "los angeles sparks"):   "Los Angeles Sparks",
+    ("WNBA", "la sparks"):            "Los Angeles Sparks",
+    ("WNBA", "dream"):                "Atlanta Dream",
+    ("WNBA", "atlanta dream"):        "Atlanta Dream",
+    ("WNBA", "sky"):                  "Chicago Sky",
+    ("WNBA", "chicago sky"):          "Chicago Sky",
+    ("WNBA", "wings"):                "Dallas Wings",
+    ("WNBA", "dallas wings"):         "Dallas Wings",
+    ("WNBA", "sun"):                  "Connecticut Sun",
+    ("WNBA", "connecticut sun"):      "Connecticut Sun",
+    ("WNBA", "storm"):                "Seattle Storm",
+    ("WNBA", "seattle storm"):        "Seattle Storm",
+    ("WNBA", "fever"):                "Indiana Fever",
+    ("WNBA", "indiana fever"):        "Indiana Fever",
+    ("WNBA", "aces"):                 "Las Vegas Aces",
+    ("WNBA", "las vegas aces"):       "Las Vegas Aces",
+    ("WNBA", "lv aces"):              "Las Vegas Aces",
+    ("WNBA", "mystics"):              "Washington Mystics",
+    ("WNBA", "washington mystics"):   "Washington Mystics",
+    ("WNBA", "liberty"):              "New York Liberty",
+    ("WNBA", "new york liberty"):     "New York Liberty",
+    ("WNBA", "ny liberty"):           "New York Liberty",
+    ("WNBA", "valkyries"):            "Golden State Valkyries",
+    ("WNBA", "golden state valkyries"): "Golden State Valkyries",
+    ("WNBA", "charge"):               "Cleveland Charge",
+    ("WNBA", "cleveland charge"):     "Cleveland Charge",
+    ("WNBA", "blue crew"):            "Portland Blue Crew",
+    ("WNBA", "portland blue crew"):   "Portland Blue Crew",
+}
+
+
+# ---------------------------------------------------------------------------
 # VenueResolver
 # ---------------------------------------------------------------------------
 
@@ -190,7 +254,7 @@ class VenueResolver:
                 state=str(r["state"]).strip(),
                 lat=self._num(r.get("lat")),
                 lon=self._num(r.get("lon")),
-                elevation=self._num(r.get("elevation")),   # FEET
+                elevation=self._num(r.get("elevation")),
                 orientation_deg=self._num(r.get("orientation_deg")),
                 orientation_label=self._text(r.get("orientation_label")),
                 orientation_confidence=self._num(r.get("orientation_confidence")),
@@ -214,6 +278,7 @@ class VenueResolver:
             for token in _tokens(row.team):
                 k = (row.league, token)
                 token_counts[k] = token_counts.get(k, 0) + 1
+
         for row in self.rows:
             key = (row.league, _fold(row.team))
             aliases[key] = row
@@ -226,22 +291,20 @@ class VenueResolver:
                 for token in parts:
                     if token_counts.get((row.league, token)) == 1:
                         aliases[(row.league, token)] = row
-        manual = {
-            ("MLB", "a s"):                  "Athletics",
-            ("MLB", "oakland athletics"):    "Athletics",
-            ("MLB", "sacramento athletics"): "Athletics",
-            ("NFL", "niners"):               "San Francisco 49ers",
-            ("NBA", "cavs"):                 "Cleveland Cavaliers",
-            ("NBA", "sixers"):               "Philadelphia 76ers",
-            ("NHL", "habs"):                 "Montreal Canadiens",
-            ("NHL", "avs"):                  "Colorado Avalanche",
-        }
-        for (league, alias), team_name in manual.items():
+
+        # Apply manual nickname table
+        for (league, alias), team_name in _MANUAL_ALIASES.items():
             match = next(
                 (r for r in self.by_league.get(league, []) if r.team == team_name), None
             )
             if match:
                 aliases[(league, _fold(alias))] = match
+            else:
+                # Team not yet in workbook — log so we know to add it
+                logger.debug(
+                    "Manual alias (%s, %r) → %r not found in workbook",
+                    league, alias, team_name,
+                )
         return aliases
 
     def canonical_league(self, sport: str) -> str:
@@ -256,10 +319,12 @@ class VenueResolver:
         if not folded:
             return None, 0.0, cleaned
 
+        # 1. Exact alias hit (includes manual nickname table)
         direct = self.aliases.get((league, folded))
         if direct:
             return direct, 1.0, cleaned
 
+        # 2. Token-subset containment
         raw_tokens = _tokens(cleaned)
         contained  = []
         for (alias_league, alias), row in self.aliases.items():
@@ -270,6 +335,7 @@ class VenueResolver:
             contained.sort(key=lambda x: x[0], reverse=True)
             return contained[0][1], 1.0, cleaned
 
+        # 3. Fuzzy fallback
         best, best_score = None, 0.0
         for row in self.by_league.get(league, []):
             team_fold   = _fold(row.team)
@@ -280,6 +346,12 @@ class VenueResolver:
             score       = max(overlap, ratio, min(1.0, 0.70 * overlap + 0.30 * city_ratio))
             if score > best_score:
                 best, best_score = row, score
+
+        if best and best_score < min_score:
+            logger.warning(
+                "resolve_team [%s] %r best_score=%.3f < %.2f — rejected (add to workbook or manual aliases)",
+                league, raw_name, best_score, min_score,
+            )
         return (best if best_score >= min_score else None), best_score, cleaned
 
     def validate_game(
@@ -302,15 +374,14 @@ class VenueResolver:
     def match_market(
         self, game: dict, candidates: Iterable[str]
     ) -> tuple[str | None, float, str]:
-        """Require BOTH canonical teams in a prediction-market title."""
         away, home = game["away"], game["home"]
         away_tokens, home_tokens = _tokens(away.team), _tokens(home.team)
         best_key, best_score, method = None, 0.0, "none"
         for candidate in candidates:
-            ct         = _tokens(candidate)
-            away_hit   = len(away_tokens & ct) / max(1, len(away_tokens))
-            home_hit   = len(home_tokens & ct) / max(1, len(home_tokens))
-            venue_hit  = (
+            ct        = _tokens(candidate)
+            away_hit  = len(away_tokens & ct) / max(1, len(away_tokens))
+            home_hit  = len(home_tokens & ct) / max(1, len(home_tokens))
+            venue_hit = (
                 1.0 if _fold(home.city) in _fold(candidate)
                      or _fold(home.venue) in _fold(candidate)
                 else 0.0
