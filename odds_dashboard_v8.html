@@ -97,11 +97,11 @@ tr:last-child td{border:none}
     <button class="sport-tab" data-sport="ncaab">NCAAB</button>
     <button class="sport-tab" data-sport="wnba">WNBA</button>
   </div>
-  <button class="refresh-btn" id="refresh-btn">↻ Refresh</button>
+  <button class="refresh-btn" id="refresh-btn">&#8635; Refresh</button>
   <span id="last-updated"></span>
 </div>
 
-<div id="loading"><span class="spinner"></span>Loading dashboard…</div>
+<div id="loading"><span class="spinner"></span>Loading dashboard&hellip;</div>
 <div id="game-list" style="display:none"></div>
 
 <script>
@@ -111,11 +111,11 @@ let _activeSport = 'all';
 
 // ------------------------------------------------------------------ helpers
 function fmt(v, dec=1) {
-  if (v == null || v === '') return '—';
+  if (v == null || v === '') return '\u2014';
   return typeof v === 'number' ? v.toFixed(dec) : v;
 }
 function fmtAm(v) {
-  if (v == null) return '—';
+  if (v == null) return '\u2014';
   return v > 0 ? '+'+v : String(v);
 }
 function badgeClass(disp) {
@@ -129,7 +129,7 @@ function densityBadge(wx) {
   const rho = wx.air_density_kgm3;
   const pct = wx.density_pct_of_isa_sealevel;
   if (rho == null) return '';
-  return `<span class="badge badge-density">ρ ${rho.toFixed(4)} kg/m³ (${fmt(pct,1)}% ISA)</span>`;
+  return `<span class="badge badge-density">&#961; ${rho.toFixed(4)} kg/m&#179; (${fmt(pct,1)}% ISA)</span>`;
 }
 
 // ------------------------------------------------------------------ fetch
@@ -145,7 +145,7 @@ async function loadDashboard() {
     renderGames();
   } catch(e) {
     document.getElementById('loading').innerHTML =
-      `<span style="color:#e74c3c">⚠ Error: ${e.message}. Is run.bat running?</span>`;
+      `<span style="color:#e74c3c">&#9888; Error: ${e.message}. Is run.bat running?</span>`;
   }
 }
 
@@ -210,7 +210,6 @@ function buildGameRow(g) {
     if (!isOpen) detail.classList.add('open');
   });
 
-  // Tab switching inside this row
   detail.querySelectorAll && setTimeout(() => {
     detail.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
@@ -330,7 +329,7 @@ function buildPredTab(g) {
   </tr></thead><tbody>
     <tr><td>Kalshi</td>
       <td class="num hl">${fmt(k.home_implied,2)}%</td>
-      <td class="num">${k.home_implied != null ? fmt(100-k.home_implied,2)+'%' : '—'}</td>
+      <td class="num">${k.home_implied != null ? fmt(100-k.home_implied,2)+'%' : '\u2014'}</td>
       <td class="num">${fmtAm(k.american)}</td>
       <td class="num ${badgeClass(mh.kalshi_disparity)}">${fmt(mh.kalshi_disparity,2)}%</td>
       <td class="num ${(mh.kalshi_ev??0)>=0?'pos':'neg'}">${fmt(mh.kalshi_ev,2)}%</td>
@@ -355,7 +354,7 @@ function buildDispTab(g) {
     ['Poly EV%',    mh.poly_ev],
   ];
   return bars.map(([label, val]) => {
-    if (val == null) return `<div class="bar-row"><span class="bar-label">${label}</span><span style="color:var(--muted)">—</span></div>`;
+    if (val == null) return `<div class="bar-row"><span class="bar-label">${label}</span><span style="color:var(--muted)">&mdash;</span></div>`;
     const w = Math.min(Math.abs(val) * 10, 100);
     const color = val >= 3 ? 'var(--green)' : val >= 1 ? 'var(--yellow)' : 'var(--muted)';
     return `<div class="bar-row">
@@ -391,63 +390,120 @@ function buildPowerTab(g) {
   </tr></tfoot></table>`;
 }
 
-// ---- WEATHER TAB (App 2 integration) ----
+// ---- WEATHER TAB — Imperial primary units, game-local forecast time ----
 function buildWeatherTab(g) {
-  const v = g.venue || {};
+  const v  = g.venue || {};
   const wx = v.weather_context;
 
-  // Venue info row
+  // Elevation in feet — prefer backend-computed, fall back to raw conversion
+  const elevFt = wx?.mapped_elevation_ft
+    ?? (v.elevation != null ? v.elevation * 3.28084 : null);
+  const elevM  = wx?.mapped_elevation_m ?? v.elevation;
+
+  // Venue header chips
   const venueInfo = `
     <div class="venue-row">
-      ${v.name ? `<div class="venue-chip"><b>${v.name}</b></div>` : ''}
-      ${v.city ? `<div class="venue-chip">${v.city}${v.state?', '+v.state:''}</div>` : ''}
-      ${v.elevation != null ? `<div class="venue-chip">Elev: <b>${v.elevation.toFixed(0)} m</b></div>` : ''}
-      ${v.orientation_label ? `<div class="venue-chip">Orientation: <b>${v.orientation_label}</b>${v.orientation_deg != null?' ('+v.orientation_deg.toFixed(0)+'°)':''}</div>` : ''}
-      ${v.lat != null ? `<div class="venue-chip">Coords: <b>${v.lat.toFixed(4)}, ${v.lon.toFixed(4)}</b></div>` : ''}
+      ${v.name  ? `<div class="venue-chip"><b>${v.name}</b></div>` : ''}
+      ${v.city  ? `<div class="venue-chip">${v.city}${v.state ? ', '+v.state : ''}</div>` : ''}
+      ${elevFt != null
+          ? `<div class="venue-chip">Elev: <b>${Math.round(elevFt).toLocaleString()} ft</b>${elevM != null ? ' <span style="font-size:.72rem">('+Math.round(elevM)+' m)</span>' : ''}</div>`
+          : ''}
+      ${v.orientation_label
+          ? `<div class="venue-chip">Orientation: <b>${v.orientation_label}</b>${v.orientation_deg != null ? ' ('+v.orientation_deg.toFixed(0)+'&deg;)' : ''}</div>`
+          : ''}
+      ${v.lat != null
+          ? `<div class="venue-chip">Coords: <b>${v.lat.toFixed(4)}, ${v.lon.toFixed(4)}</b></div>`
+          : ''}
     </div>`;
 
   if (!wx) {
-    return venueInfo + '<div class="wx-unavail">⚠ Weather data not available — restart server after updating to v8 integration.</div>';
+    return venueInfo + '<div class="wx-unavail">&#9888; Weather data not available &mdash; restart server after updating to v8 integration.</div>';
   }
   if (wx.status !== 'ok') {
-    return venueInfo + `<div class="wx-unavail">⚠ Weather status: <b>${wx.status}</b>${wx.detail?' — '+wx.detail:''}</div>`;
+    return venueInfo + `<div class="wx-unavail">&#9888; Weather status: <b>${wx.status}</b>${wx.detail ? ' &mdash; '+wx.detail : ''}</div>`;
   }
 
   const indoor = wx.is_indoor;
   const indEst = wx.indoor_estimate;
 
+  // Precipitation — inches primary
+  const precipIn = wx.precipitation_inh ?? (wx.precipitation_mmh != null ? wx.precipitation_mmh / 25.4 : null);
+  const precipMm = wx.precipitation_mmh;
+
+  // Weather cards — Imperial primary, metric secondary
   const cards = [
-    {label:'Air Density', val:`${wx.air_density_kgm3?.toFixed(5)} kg/m³`, sub:`${fmt(wx.density_pct_of_isa_sealevel,2)}% of ISA sea-level`},
-    {label:'Station Pressure', val:`${fmt(wx.station_pressure_hpa,1)} hPa`, sub:`${fmt(wx.station_pressure_inhg,3)} inHg`},
-    {label:'Temperature', val:`${fmt(wx.temperature_c,1)} °C`, sub:`${fmt(wx.temperature_f,1)} °F`},
-    {label:'Rel. Humidity', val:`${fmt(wx.relative_humidity_pct,0)}%`, sub:'At venue elevation'},
-    {label:'Wind Speed', val:`${fmt(wx.wind_speed_kmh,1)} km/h`, sub:`${fmt(wx.wind_speed_mph,1)} mph`},
-    {label:'Precipitation', val:`${fmt(wx.precipitation_mmh,1)} mm/h`, sub:'Forecast at game time'},
+    {
+      label: 'Air Density',
+      val:   `${wx.air_density_kgm3 != null ? wx.air_density_kgm3.toFixed(5) : '\u2014'} kg/m&#179;`,
+      sub:   `${fmt(wx.density_pct_of_isa_sealevel,2)}% of ISA sea-level`
+    },
+    {
+      label: 'Station Pressure',
+      val:   `${fmt(wx.station_pressure_inhg,3)} inHg`,
+      sub:   `${fmt(wx.station_pressure_hpa,1)} hPa`
+    },
+    {
+      label: 'Temperature',
+      val:   `${fmt(wx.temperature_f,1)} &#176;F`,
+      sub:   `${fmt(wx.temperature_c,1)} &#176;C`
+    },
+    {
+      label: 'Rel. Humidity',
+      val:   `${fmt(wx.relative_humidity_pct,0)}%`,
+      sub:   'At venue elevation'
+    },
+    {
+      label: 'Wind Speed',
+      val:   `${fmt(wx.wind_speed_mph,1)} mph`,
+      sub:   `${fmt(wx.wind_speed_kmh,1)} km/h`
+    },
+    {
+      label: 'Precipitation',
+      val:   `${precipIn != null ? precipIn.toFixed(3) : '\u2014'} in/h`,
+      sub:   `${fmt(precipMm,2)} mm/h &mdash; forecast at game time`
+    },
   ];
 
-  const grid = `<div class="wx-grid">${cards.map(c =>
-    `<div class="wx-card"><small>${c.label}</small><b>${c.val}</b><span>${c.sub}</span></div>`
-  ).join('')}</div>`;
+  const grid = `<div class="wx-grid">${
+    cards.map(c => `<div class="wx-card"><small>${c.label}</small><b>${c.val}</b><span>${c.sub}</span></div>`).join('')
+  }</div>`;
 
-  const isa = wx.isa_at_elevation || {};
+  // ISA reference block — feet + inHg primary
+  const isa        = wx.isa_at_elevation || {};
+  const isaInhg    = isa.pressure_inhg ?? (isa.pressure_hpa != null ? isa.pressure_hpa / 33.8639 : null);
+  const elevLabel  = elevFt != null
+    ? `${Math.round(elevFt).toLocaleString()} ft`
+    : (elevM != null ? `${Math.round(elevM)} m` : '—');
+
+  // Forecast time — local game-time timezone if available, UTC fallback
+  const forecastDisplay = wx.forecast_hour_local
+    ? `<b>${wx.forecast_hour_local}</b> (game-time local)`
+    : (wx.forecast_hour_utc ? `<b>${wx.forecast_hour_utc}</b> UTC` : '\u2014');
+
   const isaBlock = `<div class="wx-isa">
-    ISA at ${fmt(wx.mapped_elevation_m,0)} m elevation: <b>${fmt(isa.pressure_hpa,2)} hPa</b> / <b>${isa.density_kgm3?.toFixed(5)} kg/m³</b>
-    &nbsp;&bull;&nbsp; Forecast hour: <b>${wx.forecast_hour_utc || '—'}</b> UTC
+    ISA at ${elevLabel} elevation:
+    <b>${isaInhg != null ? isaInhg.toFixed(3) : '\u2014'} inHg</b>
+    &nbsp;/&nbsp;
+    <b>${isa.density_kgm3 != null ? isa.density_kgm3.toFixed(5) : '\u2014'} kg/m&#179;</b>
+    &nbsp;&bull;&nbsp; Forecast: ${forecastDisplay}
   </div>`;
 
+  // Indoor block — °F primary
   let indoorBlock = '';
   if (indoor && indEst) {
+    const indTempF = indEst.assumed_temp_f ?? (indEst.assumed_temp_c * 9/5 + 32);
     indoorBlock = `<div class="wx-indoor">
-      🏗 <b>Indoor / Roofed Venue</b> &mdash; HVAC Baseline Estimate<br>
-      Density at ${indEst.assumed_temp_c}°C / ${indEst.assumed_rh_pct}% RH: <b>${indEst.density_kgm3?.toFixed(5)} kg/m³</b>
+      &#127959; <b>Indoor / Roofed Venue</b> &mdash; HVAC Baseline Estimate<br>
+      Density at ${indTempF.toFixed(0)}&#176;F / ${indEst.assumed_rh_pct}% RH:
+      <b>${indEst.density_kgm3 != null ? indEst.density_kgm3.toFixed(5) : '\u2014'} kg/m&#179;</b>
       (${indEst.pct_vs_outdoor >= 0 ? '+' : ''}${fmt(indEst.pct_vs_outdoor,2)}% vs outdoor)<br>
       <small>${indEst.note}</small>
     </div>`;
   } else if (indoor) {
-    indoorBlock = `<div class="wx-indoor">🏗 Indoor/roofed venue. Outdoor-at-venue values shown as reference.</div>`;
+    indoorBlock = `<div class="wx-indoor">&#127959; Indoor/roofed venue. Outdoor-at-venue values shown as reference.</div>`;
   }
 
-  const note = `<div class="wx-note">Station pressure is absolute surface pressure — not sea-level pressure. Values use the closest hourly forecast slot to scheduled game time via open-meteo (free, no API key). Exact indoor density requires venue temperature/RH instrumentation; the HVAC baseline is an estimate.</div>`;
+  const note = `<div class="wx-note">Station pressure is absolute surface pressure &mdash; not sea-level pressure. Values reflect the closest hourly open-meteo forecast slot to scheduled game time. Exact indoor density requires venue temperature/RH instrumentation; the HVAC baseline is an estimate.</div>`;
 
   return venueInfo + grid + isaBlock + indoorBlock + note;
 }
