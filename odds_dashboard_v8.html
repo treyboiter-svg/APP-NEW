@@ -16,6 +16,8 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,
 .sport-tab.active{background:var(--accent);color:#021a28;border-color:var(--accent);font-weight:700}
 .refresh-btn{margin-left:auto;padding:6px 14px;border-radius:8px;background:#1a4260;border:1px solid var(--border);color:var(--accent);cursor:pointer;font-size:.82rem}
 .refresh-btn:hover{background:#234f72}
+.settings-btn{padding:6px 12px;border-radius:8px;background:transparent;border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:.82rem}
+.settings-btn:hover,.settings-btn.active{background:#1a2e40;color:var(--accent);border-color:var(--accent)}
 #last-updated{font-size:.78rem;color:var(--muted);margin-left:6px}
 
 #game-list{padding:12px 16px;display:flex;flex-direction:column;gap:8px}
@@ -79,19 +81,67 @@ tr:last-child td{border:none}
 .wx-src{display:inline-block;padding:1px 6px;border-radius:4px;font-size:.7rem;background:#0d2235;border:1px solid #1e4060;color:var(--muted);margin-left:6px;vertical-align:middle}
 .wx-indoor-badge{display:inline-block;padding:2px 8px;border-radius:4px;background:#0a2a12;border:1px solid #1a5020;color:#2ecc71;font-size:.72rem;font-weight:700;margin-left:6px}
 .wx-outdoor-badge{display:inline-block;padding:2px 8px;border-radius:4px;background:#0c2235;border:1px solid #1a4060;color:#7ee8ff;font-size:.72rem;font-weight:700;margin-left:6px}
-
 .venue-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;font-size:.82rem}
 .venue-chip{background:#081927;border:1px solid var(--border);border-radius:6px;padding:3px 8px;color:var(--muted)}
 .venue-chip b{color:var(--text)}
-
 #loading{text-align:center;padding:40px;color:var(--muted)}
 .spinner{display:inline-block;width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin-right:8px}
 @keyframes spin{to{transform:rotate(360deg)}}
-
 .bar-row{display:flex;align-items:center;gap:10px;margin:5px 0;font-size:.8rem}
 .bar-label{width:120px;color:var(--muted);flex-shrink:0}
 .bar-track{flex:1;background:#0d2030;border-radius:4px;height:10px;overflow:hidden}
 .bar-fill{height:100%;border-radius:4px;transition:width .4s}
+
+/* ===== SETTINGS PANEL ===== */
+#settings-panel{display:none;padding:20px;max-width:1100px}
+#settings-panel.open{display:block}
+.settings-section{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px}
+.settings-section h2{font-size:.9rem;font-weight:700;color:var(--accent);letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:8px}
+.diag-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.diag-card{background:#06111d;border:1px solid var(--border);border-radius:8px;padding:11px 14px}
+.diag-card .dc-label{font-size:.74rem;color:var(--muted);margin-bottom:4px}
+.diag-card .dc-val{font-size:.9rem;font-weight:700}
+.dc-ok{color:var(--green)}
+.dc-warn{color:var(--yellow)}
+.dc-err{color:var(--red)}
+.dc-muted{color:var(--muted)}
+.diag-log{background:#040e18;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:.76rem;color:#7ee8ff;max-height:260px;overflow-y:auto;white-space:pre-wrap;line-height:1.6}
+.diag-log .log-ok{color:#2ecc71}
+.diag-log .log-err{color:#e74c3c}
+.diag-log .log-warn{color:#f1c40f}
+.diag-log .log-info{color:#8ab0c5}
+.diag-run-btn{padding:7px 18px;border-radius:7px;background:#1a4260;border:1px solid var(--border);color:var(--accent);cursor:pointer;font-size:.82rem;margin-top:10px}
+.diag-run-btn:hover{background:#234f72}
+
+/* Legend table */
+.legend-table{width:100%;border-collapse:collapse;font-size:.8rem}
+.legend-table th{text-align:left;padding:6px 10px;color:var(--muted);border-bottom:1px solid var(--border);font-weight:600;font-size:.76rem}
+.legend-table td{padding:7px 10px;border-bottom:1px solid #0b1e2e;vertical-align:top;line-height:1.5}
+.legend-table tr:last-child td{border:none}
+.legend-table tr:hover td{background:#081827}
+.leg-field{font-weight:700;color:var(--accent);white-space:nowrap}
+.leg-src{display:inline-block;padding:1px 7px;border-radius:4px;font-size:.7rem;border:1px solid;margin-right:4px;white-space:nowrap}
+.src-ow{background:#0d1f35;border-color:#1e4060;color:#7ee8ff}
+.src-kalshi{background:#1a2a10;border-color:#3a5a20;color:#7ed857}
+.src-poly{background:#1a1030;border-color:#4a2a70;color:#b899ff}
+.src-odds{background:#2a1a0d;border-color:#6a3a10;color:#f5a050}
+.src-db{background:#0d2233;border-color:#1e4466;color:#42c5ee}
+.src-calc{background:#1f1a08;border-color:#5a4a10;color:#f1c40f}
+.src-isa{background:#0a1f1f;border-color:#1a4040;color:#40d0d0}
+.leg-calc{font-family:'Courier New',monospace;font-size:.72rem;color:#f1c40f;background:#0c1808;padding:2px 6px;border-radius:4px;display:inline-block;margin-top:2px}
+
+/* API status dots */
+.api-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;flex-shrink:0}
+.dot-ok{background:var(--green);box-shadow:0 0 5px var(--green)}
+.dot-warn{background:var(--yellow)}
+.dot-err{background:var(--red);box-shadow:0 0 5px var(--red)}
+.dot-unknown{background:var(--muted)}
+
+.api-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:.82rem}
+.api-row:last-child{border:none}
+.api-name{width:180px;font-weight:600;color:var(--text)}
+.api-status{flex:1;color:var(--muted)}
+.api-latency{font-family:'Courier New',monospace;font-size:.76rem;color:var(--muted);width:70px;text-align:right}
 </style>
 </head>
 <body>
@@ -109,135 +159,416 @@ tr:last-child td{border:none}
     <button class="sport-tab" data-sport="wnba">WNBA</button>
   </div>
   <button class="refresh-btn" id="refresh-btn">&#8635; Refresh</button>
+  <button class="settings-btn" id="settings-btn">&#9881; Settings &amp; Diagnostics</button>
   <span id="last-updated"></span>
 </div>
 
 <div id="loading"><span class="spinner"></span>Loading dashboard&hellip;</div>
 <div id="game-list" style="display:none"></div>
 
+<!-- ============================================================
+     SETTINGS + DIAGNOSTICS + LEGEND PANEL
+     ============================================================ -->
+<div id="settings-panel">
+
+  <!-- 1. LIVE API HEALTH -->
+  <div class="settings-section">
+    <h2>&#128161; Live API &amp; Server Health</h2>
+    <div id="api-health-rows">
+      <div style="color:var(--muted);font-size:.82rem">Click "Run Diagnostics" to test all endpoints&hellip;</div>
+    </div>
+    <button class="diag-run-btn" id="run-diag-btn">&#9654; Run Diagnostics</button>
+  </div>
+
+  <!-- 2. LIVE DIAGNOSTICS LOG -->
+  <div class="settings-section">
+    <h2>&#128203; Diagnostics Log</h2>
+    <div class="diag-log" id="diag-log"><span class="log-info">-- Diagnostics not yet run. Click "Run Diagnostics" above. --</span></div>
+  </div>
+
+  <!-- 3. DATA PIPELINE STATUS -->
+  <div class="settings-section">
+    <h2>&#128202; Data Pipeline Status</h2>
+    <div class="diag-grid" id="pipeline-grid">
+      <div class="diag-card"><div class="dc-label">Total Games Loaded</div><div class="dc-val dc-muted" id="stat-games">--</div></div>
+      <div class="diag-card"><div class="dc-label">Sports Active</div><div class="dc-val dc-muted" id="stat-sports">--</div></div>
+      <div class="diag-card"><div class="dc-label">Games with Weather</div><div class="dc-val dc-muted" id="stat-wx">--</div></div>
+      <div class="diag-card"><div class="dc-label">Games with Kalshi</div><div class="dc-val dc-muted" id="stat-kalshi">--</div></div>
+      <div class="diag-card"><div class="dc-label">Games with Polymarket</div><div class="dc-val dc-muted" id="stat-poly">--</div></div>
+      <div class="diag-card"><div class="dc-label">Games with Disparity &ge;3%</div><div class="dc-val dc-muted" id="stat-edge">--</div></div>
+      <div class="diag-card"><div class="dc-label">WNBA Games</div><div class="dc-val dc-muted" id="stat-wnba">--</div></div>
+      <div class="diag-card"><div class="dc-label">Last Refresh</div><div class="dc-val dc-muted" id="stat-refresh">--</div></div>
+    </div>
+  </div>
+
+  <!-- 4. FIELD LEGEND / DATA SOURCE KEY -->
+  <div class="settings-section">
+    <h2>&#128273; Field Legend &mdash; Data Sources &amp; Calculations</h2>
+    <p style="font-size:.78rem;color:var(--muted);margin-bottom:12px">Every field displayed on this dashboard. Source, raw API path, and exact formula where applicable.</p>
+
+    <!-- SOURCE KEY -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;font-size:.74rem">
+      <span class="leg-src src-ow">OpenWeather</span> OpenWeatherMap Forecast API
+      <span class="leg-src src-kalshi">Kalshi</span> Kalshi prediction market API
+      <span class="leg-src src-poly">Polymarket</span> Polymarket CLOB API
+      <span class="leg-src src-odds">Sportsbooks</span> Per-book odds (Pinnacle, DraftKings, FanDuel, etc.)
+      <span class="leg-src src-db">Venue DB</span> US_SPORTS_VENUES_MASTER xlsx / wnba_venues.py
+      <span class="leg-src src-calc">Calculated</span> Computed by OverlineEdge physics engine
+      <span class="leg-src src-isa">ISA Model</span> ICAO International Standard Atmosphere (1976)
+    </div>
+
+    <!-- ODDS FIELDS -->
+    <div style="font-size:.8rem;font-weight:700;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin:10px 0 6px">&#127922; Odds &amp; Market Fields</div>
+    <table class="legend-table">
+      <thead><tr><th>Field</th><th>Tab</th><th>Source</th><th>Description &amp; Formula</th></tr></thead>
+      <tbody>
+        <tr><td class="leg-field">Away ML / Home ML</td><td>Moneyline</td><td><span class="leg-src src-odds">Sportsbooks</span></td><td>American moneyline odds as scraped from each sportsbook. Raw value, no adjustment.</td></tr>
+        <tr><td class="leg-field">Away Raw% / Home Raw%</td><td>Moneyline</td><td><span class="leg-src src-calc">Calculated</span></td><td>Implied probability from American odds.<br><span class="leg-calc">pos: 100/(odds+100) &nbsp;|&nbsp; neg: |odds|/(|odds|+100)</span></td></tr>
+        <tr><td class="leg-field">Away NV Prop% / Home NV Prop%</td><td>Moneyline</td><td><span class="leg-src src-calc">Calculated</span></td><td>No-vig (vig-removed) proportional method. Raw implied probs normalised to sum to 100%.<br><span class="leg-calc">nv_prop = raw_implied / (raw_home + raw_away) &times; 100</span></td></tr>
+        <tr><td class="leg-field">Vig%</td><td>Moneyline</td><td><span class="leg-src src-calc">Calculated</span></td><td>Bookmaker overround. Sum of raw implied probs minus 100%.<br><span class="leg-calc">vig = (raw_home + raw_away) − 100</span></td></tr>
+        <tr><td class="leg-field">Consensus ML</td><td>Moneyline</td><td><span class="leg-src src-calc">Calculated</span></td><td>Average no-vig implied probability across all books with valid lines. Converted back to American.</td></tr>
+        <tr><td class="leg-field">Spread Point / ML</td><td>Spread</td><td><span class="leg-src src-odds">Sportsbooks</span></td><td>Point spread and price per book. Implied% same formula as moneyline.</td></tr>
+        <tr><td class="leg-field">O/U Point / ML</td><td>Total O/U</td><td><span class="leg-src src-odds">Sportsbooks</span></td><td>Over/Under total and price per book.</td></tr>
+        <tr><td class="leg-field">Kalshi Home Implied%</td><td>Pred Markets</td><td><span class="leg-src src-kalshi">Kalshi</span></td><td>Yes-contract last price &times; 100. Direct market-implied probability, no vig model applied.</td></tr>
+        <tr><td class="leg-field">Polymarket Home Implied%</td><td>Pred Markets</td><td><span class="leg-src src-poly">Polymarket</span></td><td>CLOB mid-price &times; 100. Best bid/ask midpoint from Polymarket order book.</td></tr>
+        <tr><td class="leg-field">Kalshi Disparity%</td><td>Disparity</td><td><span class="leg-src src-calc">Calculated</span></td><td>Difference between Kalshi market probability and consensus sportsbook no-vig probability.<br><span class="leg-calc">disp = kalshi_implied − consensus_nv_prop</span></td></tr>
+        <tr><td class="leg-field">Poly Disparity%</td><td>Disparity</td><td><span class="leg-src src-calc">Calculated</span></td><td>Same formula using Polymarket implied instead of Kalshi.</td></tr>
+        <tr><td class="leg-field">Kalshi EV%</td><td>Pred Markets</td><td><span class="leg-src src-calc">Calculated</span></td><td>Expected value if betting sportsbook price using Kalshi as &ldquo;true&rdquo; probability.<br><span class="leg-calc">ev = kalshi_implied &times; (book_win_payout) − (1 − kalshi_implied)</span></td></tr>
+        <tr><td class="leg-field">Power Method %</td><td>Power Method</td><td><span class="leg-src src-calc">Calculated</span></td><td>Shin / power devig method. Solves for true probs via iterative root-finding on the power equation:<br><span class="leg-calc">&Sigma;(p_i^k) = 1 &nbsp;&rarr;&nbsp; solve k, then p_true = p_raw^k / &Sigma;(p_raw^k)</span></td></tr>
+      </tbody>
+    </table>
+
+    <!-- WEATHER FIELDS -->
+    <div style="font-size:.8rem;font-weight:700;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin:16px 0 6px">&#127777; Weather &amp; Physics Fields</div>
+    <table class="legend-table">
+      <thead><tr><th>Field</th><th>Source</th><th>API Path / Formula</th></tr></thead>
+      <tbody>
+        <tr><td class="leg-field">Temperature (F/C)</td><td><span class="leg-src src-ow">OpenWeather</span></td><td>forecast[i].main.temp (Kelvin) &rarr; converted. Nearest forecast hour to game time.</td></tr>
+        <tr><td class="leg-field">Relative Humidity%</td><td><span class="leg-src src-ow">OpenWeather</span></td><td>forecast[i].main.humidity</td></tr>
+        <tr><td class="leg-field">Wind Speed (mph/kmh)</td><td><span class="leg-src src-ow">OpenWeather</span></td><td>forecast[i].wind.speed (m/s) &rarr; &times;2.237 for mph, &times;3.6 for km/h</td></tr>
+        <tr><td class="leg-field">Wind Direction (deg)</td><td><span class="leg-src src-ow">OpenWeather</span></td><td>forecast[i].wind.deg &mdash; meteorological convention: direction wind blows FROM.</td></tr>
+        <tr><td class="leg-field">Precipitation (in/h)</td><td><span class="leg-src src-ow">OpenWeather</span></td><td>forecast[i].rain["3h"] / 3 (mm/h) &rarr; &divide;25.4 for in/h</td></tr>
+        <tr><td class="leg-field">Station Pressure (hPa / inHg / Pa)</td><td><span class="leg-src src-ow">OpenWeather</span></td><td>forecast[i].main.grnd_level (hPa) &mdash; TRUE absolute surface pressure at venue elevation. <b>NOT sea-level adjusted.</b> inHg = hPa/33.8639. Pa = hPa&times;100.</td></tr>
+        <tr><td class="leg-field">Sea-Level Ref / MSLP</td><td><span class="leg-src src-calc">Calculated</span></td><td>Hypsometric correction of station pressure up to sea level. <b>Display only &mdash; never used for density.</b><br><span class="leg-calc">MSLP = P_station &times; exp(&lambda;&times;h / T) &nbsp;|&nbsp; &lambda;=0.0065 K/m</span></td></tr>
+        <tr><td class="leg-field">Air Density (kg/m&sup3;)</td><td><span class="leg-src src-calc">Calculated</span></td><td>Moist air density from station pressure, temp, humidity. <code>pressure_calc.moist_air_density()</code><br><span class="leg-calc">&rho; = (P_dry / R_d&times;T) + (P_vap / R_v&times;T) &nbsp;|&nbsp; R_d=287.05, R_v=461.495</span></td></tr>
+        <tr><td class="leg-field">% of ISA (sea-level)</td><td><span class="leg-src src-calc">Calculated</span> <span class="leg-src src-isa">ISA Model</span></td><td>Actual density vs ISA sea-level standard (1.225 kg/m&sup3;).<br><span class="leg-calc">&rho;_actual / 1.225 &times; 100</span></td></tr>
+        <tr><td class="leg-field">% of ISA (@ elevation)</td><td><span class="leg-src src-calc">Calculated</span> <span class="leg-src src-isa">ISA Model</span></td><td>Actual density vs what ISA predicts at this venue's elevation.<br><span class="leg-calc">&rho;_actual / &rho;_ISA_elev &times; 100</span></td></tr>
+        <tr><td class="leg-field">ISA Reference (pressure/density/temp)</td><td><span class="leg-src src-isa">ISA Model</span></td><td>ICAO standard atmosphere at venue elevation. <code>pressure_calc.isa_at_elevation(elev_m)</code><br><span class="leg-calc">q = 1 − 0.0065&times;h/288.15 &nbsp;|&nbsp; P = 1013.25&times;q^5.25588 &nbsp;|&nbsp; &rho; = 1.225&times;q^4.25588</span></td></tr>
+        <tr><td class="leg-field">Density Altitude (ft)</td><td><span class="leg-src src-calc">Calculated</span></td><td>Pressure altitude corrected for virtual temperature (humidity-adjusted). Pilot standard.<br><span class="leg-calc">PA = (1 − (P/1013.25)^0.190284) &times; 145366.45 &nbsp;|&nbsp; DA = PA + 120&times;(T_v − 288.15)</span></td></tr>
+        <tr><td class="leg-field">Headwind / Crosswind (mph)</td><td><span class="leg-src src-calc">Calculated</span> <span class="leg-src src-db">Venue DB</span></td><td>Wind decomposed relative to stadium field orientation. <code>wind_calc.wind_vs_stadium()</code><br><span class="leg-calc">rel = (wind_dir − field_orient) mod 360 &nbsp;|&nbsp; headwind = speed&times;cos(rel) &nbsp;|&nbsp; crosswind = speed&times;sin(rel)</span></td></tr>
+        <tr><td class="leg-field">Indoor/HVAC Density</td><td><span class="leg-src src-calc">Calculated</span></td><td>For INDOOR/DOME venues: uses HVAC baseline 70&deg;F / 45% RH with outdoor station pressure. <code>pressure_calc.indoor_hvac_model()</code><br><span class="leg-calc">Buildings are not sealed &mdash; indoor absolute pressure = outdoor station pressure. Only T and RH differ.</span></td></tr>
+      </tbody>
+    </table>
+
+    <!-- VENUE FIELDS -->
+    <div style="font-size:.8rem;font-weight:700;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin:16px 0 6px">&#127967; Venue Fields</div>
+    <table class="legend-table">
+      <thead><tr><th>Field</th><th>Source</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td class="leg-field">Venue Name / City / State</td><td><span class="leg-src src-db">Venue DB</span></td><td>MLB/NFL/NBA/NHL/NCAA: <code>US_SPORTS_VENUES_MASTER_CORRECTED_V2.xlsx</code> via <code>venue_resolver.py</code>. WNBA: <code>wnba_venues.py</code> standalone DB (15 teams, 2026).</td></tr>
+        <tr><td class="leg-field">Elevation (ft / m)</td><td><span class="leg-src src-db">Venue DB</span></td><td>Stored per venue in xlsx/wnba_venues.py. Used as primary source. Google Elevation API used as fallback if missing.</td></tr>
+        <tr><td class="leg-field">Lat / Lon</td><td><span class="leg-src src-db">Venue DB</span></td><td>Stored per venue. Used to call OpenWeather forecast API at exact venue coordinates.</td></tr>
+        <tr><td class="leg-field">Field Orientation (deg)</td><td><span class="leg-src src-db">Venue DB</span></td><td>Compass bearing the field's long axis points (home plate end for MLB; attacking direction for football). Used in headwind/crosswind calculation.</td></tr>
+        <tr><td class="leg-field">Roof Type</td><td><span class="leg-src src-db">Venue DB</span></td><td>OPEN | RETRACTABLE | DOME | INDOOR. Determines whether weather API is called or HVAC model is used.</td></tr>
+        <tr><td class="leg-field">Forecast Slot</td><td><span class="leg-src src-ow">OpenWeather</span></td><td>The 3-hour forecast slot closest to game start time. Shown in Weather tab timing bar.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 5. MODULE VERSIONS -->
+  <div class="settings-section">
+    <h2>&#128736; Module Versions</h2>
+    <div class="diag-grid">
+      <div class="diag-card"><div class="dc-label">Dashboard</div><div class="dc-val dc-ok">v8.4.4</div></div>
+      <div class="diag-card"><div class="dc-label">fetcher.py</div><div class="dc-val dc-ok">v8.4.2</div></div>
+      <div class="diag-card"><div class="dc-label">wnba_venues.py</div><div class="dc-val dc-ok">v8.4.0</div></div>
+      <div class="diag-card"><div class="dc-label">pressure_calc.py</div><div class="dc-val dc-ok">v8.4.0</div></div>
+      <div class="diag-card"><div class="dc-label">wind_calc.py</div><div class="dc-val dc-ok">v8.4.0</div></div>
+      <div class="diag-card"><div class="dc-label">weather_enricher.py</div><div class="dc-val dc-ok">v8.4</div></div>
+      <div class="diag-card"><div class="dc-label">venue_resolver.py</div><div class="dc-val dc-ok">v8</div></div>
+      <div class="diag-card"><div class="dc-label">Server</div><div class="dc-val dc-muted" id="stat-server">checking&hellip;</div></div>
+    </div>
+  </div>
+
+</div>
+<!-- END SETTINGS PANEL -->
+
 <script>
 const API = 'http://127.0.0.1:8000';
 let _data = {};
 let _activeSport = 'all';
+let _settingsOpen = false;
 
-function fmt(v, dec=1) {
-  if (v == null || v === '') return '\u2014';
-  return typeof v === 'number' ? v.toFixed(dec) : v;
-}
-function fmtAm(v) {
-  if (v == null) return '\u2014';
-  return v > 0 ? '+'+v : String(v);
-}
-function badgeClass(disp) {
-  if (disp == null) return 'badge-grey';
-  if (disp >= 3) return 'badge-green';
-  if (disp >= 1) return 'badge-yellow';
-  return 'badge-grey';
-}
-function densityBadge(wx) {
-  if (!wx) return '';
-  // pull from nested pressure_density block (v8.4+) or flat legacy fields
-  const pd  = wx.pressure_density || wx;
-  const rho = pd.air_density_kgm3 ?? wx.air_density_kgm3;
-  const pct = pd.density_pct_of_isa_sealevel ?? wx.density_pct_of_isa_sealevel;
-  if (rho == null) return '';
-  const label = wx.roof_type && wx.roof_type !== 'OUTDOOR' && wx.roof_type !== 'OPEN'
-    ? ' <span style="font-size:.65rem;opacity:.7">(HVAC)</span>' : '';
-  return `<span class="badge badge-density">&#961; ${rho.toFixed(4)} kg/m&#179; (${fmt(pct,1)}% ISA)${label}</span>`;
+function fmt(v,dec=1){if(v==null||v==='')return'\u2014';return typeof v==='number'?v.toFixed(dec):v;}
+function fmtAm(v){if(v==null)return'\u2014';return v>0?'+'+v:String(v);}
+function badgeClass(disp){if(disp==null)return'badge-grey';if(disp>=3)return'badge-green';if(disp>=1)return'badge-yellow';return'badge-grey';}
+function densityBadge(wx){
+  if(!wx)return'';
+  const pd=wx.pressure_density||wx;
+  const rho=pd.air_density_kgm3??wx.air_density_kgm3;
+  const pct=pd.density_pct_of_isa_sealevel??wx.density_pct_of_isa_sealevel;
+  if(rho==null)return'';
+  const label=wx.roof_type&&wx.roof_type!=='OUTDOOR'&&wx.roof_type!=='OPEN'?'<span style="font-size:.65rem;opacity:.7">(HVAC)</span>':'';
+  return`<span class="badge badge-density">&#961; ${rho.toFixed(4)} kg/m&#179; (${fmt(pct,1)}% ISA)${label}</span>`;
 }
 
-async function loadDashboard() {
-  document.getElementById('loading').style.display = 'block';
-  document.getElementById('game-list').style.display = 'none';
-  try {
-    const res = await fetch(API + '/api/dashboard');
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    _data = await res.json();
-    document.getElementById('last-updated').textContent =
-      'Updated ' + new Date().toLocaleTimeString();
+// =====================================================================
+// SETTINGS TOGGLE
+// =====================================================================
+document.getElementById('settings-btn').addEventListener('click', ()=>{
+  _settingsOpen = !_settingsOpen;
+  document.getElementById('settings-btn').classList.toggle('active', _settingsOpen);
+  document.getElementById('settings-panel').classList.toggle('open', _settingsOpen);
+  document.getElementById('game-list').style.display = _settingsOpen ? 'none' : 'flex';
+  document.getElementById('loading').style.display = 'none';
+  if (_settingsOpen) updatePipelineStats();
+});
+
+// =====================================================================
+// PIPELINE STATS (computed from _data)
+// =====================================================================
+function updatePipelineStats(){
+  const games = allGames();
+  const withWx    = games.filter(g=>(g.venue||{}).weather_context?.status==='ok').length;
+  const withK     = games.filter(g=>g.kalshi?.home_implied!=null).length;
+  const withP     = games.filter(g=>g.polymarket?.home_implied!=null).length;
+  const withEdge  = games.filter(g=>{
+    const mh=g.implied_matrix_home||{};
+    return Math.max(mh.kalshi_disparity??-1,mh.poly_disparity??-1)>=3;
+  }).length;
+  const wnbaGames = games.filter(g=>g._sport==='wnba').length;
+  const sports    = [...new Set(games.map(g=>g._sport))].join(', ');
+  document.getElementById('stat-games').textContent   = games.length;
+  document.getElementById('stat-games').className     = 'dc-val '+(games.length>0?'dc-ok':'dc-warn');
+  document.getElementById('stat-sports').textContent  = sports||'--';
+  document.getElementById('stat-sports').className    = 'dc-val dc-ok';
+  document.getElementById('stat-wx').textContent      = withWx+' / '+games.length;
+  document.getElementById('stat-wx').className        = 'dc-val '+(withWx>0?'dc-ok':'dc-warn');
+  document.getElementById('stat-kalshi').textContent  = withK;
+  document.getElementById('stat-kalshi').className    = 'dc-val '+(withK>0?'dc-ok':'dc-muted');
+  document.getElementById('stat-poly').textContent    = withP;
+  document.getElementById('stat-poly').className      = 'dc-val '+(withP>0?'dc-ok':'dc-muted');
+  document.getElementById('stat-edge').textContent    = withEdge;
+  document.getElementById('stat-edge').className      = 'dc-val '+(withEdge>0?'dc-ok':'dc-muted');
+  document.getElementById('stat-wnba').textContent    = wnbaGames;
+  document.getElementById('stat-wnba').className      = 'dc-val dc-muted';
+  document.getElementById('stat-refresh').textContent = document.getElementById('last-updated').textContent||'--';
+  document.getElementById('stat-refresh').className   = 'dc-val dc-muted';
+}
+
+// =====================================================================
+// LIVE DIAGNOSTICS
+// =====================================================================
+document.getElementById('run-diag-btn').addEventListener('click', runDiagnostics);
+
+async function runDiagnostics(){
+  const log   = document.getElementById('diag-log');
+  const panel = document.getElementById('api-health-rows');
+  log.innerHTML = '';
+  panel.innerHTML = '';
+
+  function logLine(cls, msg){
+    const span = document.createElement('span');
+    span.className = cls;
+    span.textContent = msg+'\n';
+    log.appendChild(span);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function apiRow(name, dotCls, statusText, latency){
+    panel.innerHTML += `
+      <div class="api-row">
+        <span class="api-dot ${dotCls}"></span>
+        <span class="api-name">${name}</span>
+        <span class="api-status">${statusText}</span>
+        <span class="api-latency">${latency}</span>
+      </div>`;
+  }
+
+  logLine('log-info', '['+new Date().toLocaleTimeString()+'] Starting diagnostics...');
+
+  // --- 1. FastAPI /api/dashboard ---
+  logLine('log-info', '\n[1/5] Testing FastAPI server (http://127.0.0.1:8000/api/dashboard)...');
+  let t0 = performance.now();
+  try{
+    const r = await fetch(API+'/api/dashboard',{signal:AbortSignal.timeout(8000)});
+    const ms = Math.round(performance.now()-t0);
+    if(r.ok){
+      const d = await r.json();
+      const sports = Object.keys(d);
+      const total  = sports.reduce((s,[,v])=>s+(v.games||[]).length,0); // fix below
+      const totalG = sports.reduce((s,k)=>s+(d[k].games||[]).length,0);
+      logLine('log-ok', `  [OK] 200 in ${ms}ms | Sports: ${sports.join(', ')} | Games: ${totalG}`);
+      apiRow('FastAPI /api/dashboard','dot-ok',`200 OK &bull; ${totalG} games &bull; ${sports.length} sports`,ms+'ms');
+      document.getElementById('stat-server').textContent = 'OK';
+      document.getElementById('stat-server').className   = 'dc-val dc-ok';
+    } else {
+      logLine('log-err',`  [FAIL] HTTP ${r.status}`);
+      apiRow('FastAPI /api/dashboard','dot-err',`HTTP ${r.status}`,ms+'ms');
+    }
+  } catch(e){
+    const ms = Math.round(performance.now()-t0);
+    logLine('log-err',`  [FAIL] ${e.message} (Is run.bat running?)`);
+    apiRow('FastAPI /api/dashboard','dot-err',e.message,ms+'ms');
+    document.getElementById('stat-server').textContent = 'OFFLINE';
+    document.getElementById('stat-server').className   = 'dc-val dc-err';
+  }
+
+  // --- 2. /api/health (if exists) ---
+  logLine('log-info','\n[2/5] Testing /api/health...');
+  t0 = performance.now();
+  try{
+    const r = await fetch(API+'/api/health',{signal:AbortSignal.timeout(4000)});
+    const ms = Math.round(performance.now()-t0);
+    if(r.ok){
+      const d = await r.json().catch(()=>({}));
+      logLine('log-ok',`  [OK] ${ms}ms | ${JSON.stringify(d).slice(0,120)}`);
+      apiRow('FastAPI /api/health','dot-ok','OK',ms+'ms');
+    } else {
+      logLine('log-warn',`  [WARN] HTTP ${r.status} (endpoint may not exist)`);
+      apiRow('FastAPI /api/health','dot-warn',`HTTP ${r.status} (not implemented)`,ms+'ms');
+    }
+  } catch(e){
+    logLine('log-warn',`  [WARN] ${e.message}`);
+    apiRow('FastAPI /api/health','dot-warn','Not reachable / not implemented','--');
+  }
+
+  // --- 3. OpenWeather (proxy check via dashboard data) ---
+  logLine('log-info','\n[3/5] Checking OpenWeather data coverage...');
+  const games = allGames();
+  const wxOk  = games.filter(g=>(g.venue||{}).weather_context?.status==='ok');
+  const wxErr = games.filter(g=>(g.venue||{}).weather_context?.status && (g.venue||{}).weather_context?.status!=='ok');
+  const wxNone= games.filter(g=>!(g.venue||{}).weather_context);
+  if(games.length===0){
+    logLine('log-warn','  [WARN] No game data loaded yet. Refresh first.');
+    apiRow('OpenWeather API','dot-warn','No data loaded','--');
+  } else {
+    logLine('log-ok',`  [OK] ${wxOk.length}/${games.length} games have weather | ${wxErr.length} errors | ${wxNone.length} no venue`);
+    const dot = wxOk.length>0 ? 'dot-ok' : 'dot-warn';
+    apiRow('OpenWeather (via data)','dot-ok',`${wxOk.length}/${games.length} games enriched`,'cached');
+    if(wxErr.length>0){
+      wxErr.slice(0,3).forEach(g=>{
+        const s=(g.venue||{}).weather_context?.status||'unknown';
+        logLine('log-warn',`    [WARN] ${g.title}: wx status = ${s}`);
+      });
+    }
+  }
+
+  // --- 4. Kalshi ---
+  logLine('log-info','\n[4/5] Checking Kalshi data...');
+  const kGames = games.filter(g=>g.kalshi?.home_implied!=null);
+  if(kGames.length>0){
+    logLine('log-ok',`  [OK] ${kGames.length} games have Kalshi data`);
+    apiRow('Kalshi API (via data)','dot-ok',`${kGames.length} games with markets`,'cached');
+  } else {
+    logLine('log-warn','  [WARN] 0 games with Kalshi data. Check API key or series config in config.py');
+    apiRow('Kalshi API','dot-warn','0 games matched','--');
+  }
+
+  // --- 5. Polymarket ---
+  logLine('log-info','\n[5/5] Checking Polymarket data...');
+  const pGames = games.filter(g=>g.polymarket?.home_implied!=null);
+  if(pGames.length>0){
+    logLine('log-ok',`  [OK] ${pGames.length} games have Polymarket data`);
+    apiRow('Polymarket API (via data)','dot-ok',`${pGames.length} games with markets`,'cached');
+  } else {
+    logLine('log-warn','  [WARN] 0 games with Polymarket data');
+    apiRow('Polymarket API','dot-warn','0 games matched','--');
+  }
+
+  // --- Summary ---
+  logLine('log-info','\n========================================');
+  logLine('log-ok','Diagnostics complete: '+new Date().toLocaleTimeString());
+  logLine('log-info','========================================');
+  updatePipelineStats();
+}
+
+// =====================================================================
+// DASHBOARD LOAD
+// =====================================================================
+async function loadDashboard(){
+  document.getElementById('loading').style.display='block';
+  document.getElementById('game-list').style.display='none';
+  if(_settingsOpen)return;
+  try{
+    const res=await fetch(API+'/api/dashboard');
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    _data=await res.json();
+    document.getElementById('last-updated').textContent='Updated '+new Date().toLocaleTimeString();
     renderGames();
-  } catch(e) {
-    document.getElementById('loading').innerHTML =
-      `<span style="color:#e74c3c">&#9888; Error: ${e.message}. Is run.bat running?</span>`;
+  } catch(e){
+    document.getElementById('loading').innerHTML=`<span style="color:#e74c3c">&#9888; Error: ${e.message}. Is run.bat running?</span>`;
   }
 }
 
-function allGames() {
-  const games = [];
-  for (const [sport, sd] of Object.entries(_data)) {
-    for (const g of (sd.games || [])) games.push({...g, _sport: sport});
+function allGames(){
+  const games=[];
+  for(const[sport,sd]of Object.entries(_data)){
+    for(const g of(sd.games||[]))games.push({...g,_sport:sport});
   }
   return games;
 }
 
-function renderGames() {
-  const list = document.getElementById('game-list');
-  list.innerHTML = '';
-  const games = allGames().filter(g =>
-    _activeSport === 'all' || g._sport === _activeSport
-  );
-  document.getElementById('loading').style.display = 'none';
-  list.style.display = 'flex';
-  if (!games.length) {
-    list.innerHTML = '<div style="color:var(--muted);padding:30px;text-align:center">No games found.</div>';
+function renderGames(){
+  const list=document.getElementById('game-list');
+  list.innerHTML='';
+  const games=allGames().filter(g=>_activeSport==='all'||g._sport===_activeSport);
+  document.getElementById('loading').style.display='none';
+  list.style.display='flex';
+  if(!games.length){
+    list.innerHTML='<div style="color:var(--muted);padding:30px;text-align:center">No games found.</div>';
     return;
   }
-  for (const g of games) list.appendChild(buildGameRow(g));
+  for(const g of games)list.appendChild(buildGameRow(g));
 }
 
-function buildGameRow(g) {
-  const wrapper = document.createElement('div');
-  wrapper.className = 'game-row';
-
-  const mh = g.implied_matrix_home || {};
-  const maxDisp = Math.max(mh.kalshi_disparity ?? -1, mh.poly_disparity ?? -1);
-  const wx = (g.venue || {}).weather_context;
-
-  const header = document.createElement('div');
-  header.className = 'game-header';
-  header.innerHTML = `
+function buildGameRow(g){
+  const wrapper=document.createElement('div');
+  wrapper.className='game-row';
+  const mh=g.implied_matrix_home||{};
+  const maxDisp=Math.max(mh.kalshi_disparity??-1,mh.poly_disparity??-1);
+  const wx=(g.venue||{}).weather_context;
+  const header=document.createElement('div');
+  header.className='game-header';
+  header.innerHTML=`
     <span class="matchup">${g.title}</span>
-    <span class="time-tag">${g._sport.toUpperCase()} &bull; ${g.commence || 'TBD'}</span>
+    <span class="time-tag">${g._sport.toUpperCase()} &bull; ${g.commence||'TBD'}</span>
     <div class="badges">
-      ${maxDisp >= 0 ? `<span class="badge ${badgeClass(maxDisp)}">${fmt(maxDisp,1)}% edge</span>` : ''}
+      ${maxDisp>=0?`<span class="badge ${badgeClass(maxDisp)}">${fmt(maxDisp,1)}% edge</span>`:''}
       ${densityBadge(wx)}
-      ${g.venue?.name ? `<span class="badge badge-grey">${g.venue.name}</span>` : ''}
+      ${g.venue?.name?`<span class="badge badge-grey">${g.venue.name}</span>`:''}
     </div>`;
-
-  const detail = document.createElement('div');
-  detail.className = 'detail-panel';
-  detail.innerHTML = buildDetailHTML(g);
-
-  header.addEventListener('click', () => {
-    const isOpen = detail.classList.contains('open');
-    document.querySelectorAll('.detail-panel.open').forEach(el => el.classList.remove('open'));
-    if (!isOpen) detail.classList.add('open');
+  const detail=document.createElement('div');
+  detail.className='detail-panel';
+  detail.innerHTML=buildDetailHTML(g);
+  header.addEventListener('click',()=>{
+    const isOpen=detail.classList.contains('open');
+    document.querySelectorAll('.detail-panel.open').forEach(el=>el.classList.remove('open'));
+    if(!isOpen)detail.classList.add('open');
   });
-
-  setTimeout(() => {
-    detail.querySelectorAll('.tab-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+  setTimeout(()=>{
+    detail.querySelectorAll('.tab-btn').forEach(btn=>{
+      btn.addEventListener('click',(e)=>{
         e.stopPropagation();
-        const panel = btn.closest('.detail-panel');
-        panel.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        panel.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        const panel=btn.closest('.detail-panel');
+        panel.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+        panel.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
         btn.classList.add('active');
-        panel.querySelector('#tab-' + btn.dataset.tab + '-' + g.game_id).classList.add('active');
+        panel.querySelector('#tab-'+btn.dataset.tab+'-'+g.game_id).classList.add('active');
       });
     });
-  }, 0);
-
+  },0);
   wrapper.appendChild(header);
   wrapper.appendChild(detail);
   return wrapper;
 }
 
-function buildDetailHTML(g) {
-  const id   = g.game_id;
-  const tabs = ['Moneyline','Spread','Total O/U','Pred Markets','Disparity','Power Method','Weather & Air Density'];
-  const keys = ['ml','spread','total','pred','disp','power','weather'];
-  const tabBar = tabs.map((t,i)=>`<button class="tab-btn${i===0?' active':''}" data-tab="${keys[i]}">${t}</button>`).join('');
-  return `
+function buildDetailHTML(g){
+  const id=g.game_id;
+  const tabs=['Moneyline','Spread','Total O/U','Pred Markets','Disparity','Power Method','Weather & Air'];
+  const keys=['ml','spread','total','pred','disp','power','weather'];
+  const tabBar=tabs.map((t,i)=>`<button class="tab-btn${i===0?' active':''}" data-tab="${keys[i]}">${t}</button>`).join('');
+  return`
     <div class="tab-bar">${tabBar}</div>
     <div class="tab-content active" id="tab-ml-${id}">${buildMLTab(g)}</div>
     <div class="tab-content" id="tab-spread-${id}">${buildSpreadTab(g)}</div>
@@ -248,20 +579,20 @@ function buildDetailHTML(g) {
     <div class="tab-content" id="tab-weather-${id}">${buildWeatherTab(g)}</div>`;
 }
 
-function buildMLTab(g) {
-  const pb = g.per_book || {};
-  if (!Object.keys(pb).length) return '<p style="color:var(--muted);padding:10px">No moneyline data.</p>';
-  let rows = '';
-  for (const [book, bd] of Object.entries(pb)) {
-    rows += `<tr><td>${book}</td>
+function buildMLTab(g){
+  const pb=g.per_book||{};
+  if(!Object.keys(pb).length)return'<p style="color:var(--muted);padding:10px">No moneyline data.</p>';
+  let rows='';
+  for(const[book,bd]of Object.entries(pb)){
+    rows+=`<tr><td>${book}</td>
       <td class="num">${fmtAm(bd.away_american)}</td><td class="num">${fmtAm(bd.home_american)}</td>
       <td class="num">${fmt(bd.away_raw,2)}%</td><td class="num">${fmt(bd.home_raw,2)}%</td>
       <td class="num">${fmt(bd.away_nv_prop,2)}%</td><td class="num">${fmt(bd.home_nv_prop,2)}%</td>
       <td class="num">${fmt(bd.vig_pct,3)}%</td></tr>`;
   }
-  const c = g.consensus || {};
-  const ch = c.home || {}; const ca = c.away || {};
-  return `<table><thead><tr><th>Book</th><th class="num">Away ML</th><th class="num">Home ML</th>
+  const c=g.consensus||{};
+  const ch=c.home||{};const ca=c.away||{};
+  return`<table><thead><tr><th>Book</th><th class="num">Away ML</th><th class="num">Home ML</th>
     <th class="num">Away Raw%</th><th class="num">Home Raw%</th>
     <th class="num">Away NV%</th><th class="num">Home NV%</th>
     <th class="num">Vig%</th></tr></thead><tbody>${rows}</tbody>
@@ -272,47 +603,47 @@ function buildMLTab(g) {
     <td></td></tr></tfoot></table>`;
 }
 
-function buildSpreadTab(g) {
-  const pb = g.per_book || {};
-  let rows = '';
-  for (const [book, bd] of Object.entries(pb)) {
-    const sh = bd.spreads?.home || {}; const sa = bd.spreads?.away || {};
-    rows += `<tr><td>${book}</td>
+function buildSpreadTab(g){
+  const pb=g.per_book||{};
+  let rows='';
+  for(const[book,bd]of Object.entries(pb)){
+    const sh=bd.spreads?.home||{};const sa=bd.spreads?.away||{};
+    rows+=`<tr><td>${book}</td>
       <td class="num">${fmt(sa.point,1)}</td><td class="num">${fmtAm(sa.american)}</td><td class="num">${fmt(sa.implied,2)}%</td>
       <td class="num">${fmt(sh.point,1)}</td><td class="num">${fmtAm(sh.american)}</td><td class="num">${fmt(sh.implied,2)}%</td></tr>`;
   }
-  if (!rows) return '<p style="color:var(--muted);padding:10px">No spread data.</p>';
-  return `<table><thead><tr><th>Book</th>
+  if(!rows)return'<p style="color:var(--muted);padding:10px">No spread data.</p>';
+  return`<table><thead><tr><th>Book</th>
     <th class="num">Away Pt</th><th class="num">Away ML</th><th class="num">Away Imp%</th>
     <th class="num">Home Pt</th><th class="num">Home ML</th><th class="num">Home Imp%</th>
   </tr></thead><tbody>${rows}</tbody></table>`;
 }
 
-function buildTotalTab(g) {
-  const pb = g.per_book || {};
-  let rows = '';
-  for (const [book, bd] of Object.entries(pb)) {
-    const ov = bd.totals?.Over || {}; const un = bd.totals?.Under || {};
-    rows += `<tr><td>${book}</td>
+function buildTotalTab(g){
+  const pb=g.per_book||{};
+  let rows='';
+  for(const[book,bd]of Object.entries(pb)){
+    const ov=bd.totals?.Over||{};const un=bd.totals?.Under||{};
+    rows+=`<tr><td>${book}</td>
       <td class="num">${fmt(ov.point,1)}</td><td class="num">${fmtAm(ov.american)}</td><td class="num">${fmt(ov.implied,2)}%</td>
       <td class="num">${fmt(un.point,1)}</td><td class="num">${fmtAm(un.american)}</td><td class="num">${fmt(un.implied,2)}%</td></tr>`;
   }
-  if (!rows) return '<p style="color:var(--muted);padding:10px">No totals data.</p>';
-  return `<table><thead><tr><th>Book</th>
+  if(!rows)return'<p style="color:var(--muted);padding:10px">No totals data.</p>';
+  return`<table><thead><tr><th>Book</th>
     <th class="num">O Pt</th><th class="num">O ML</th><th class="num">O Imp%</th>
     <th class="num">U Pt</th><th class="num">U ML</th><th class="num">U Imp%</th>
   </tr></thead><tbody>${rows}</tbody></table>`;
 }
 
-function buildPredTab(g) {
-  const k = g.kalshi || {}; const p = g.polymarket || {};
-  const mh = g.implied_matrix_home || {}; const ma = g.implied_matrix_away || {};
-  return `<table><thead><tr><th>Market</th><th class="num">Home Imp%</th><th class="num">Away Imp%</th>
+function buildPredTab(g){
+  const k=g.kalshi||{};const p=g.polymarket||{};
+  const mh=g.implied_matrix_home||{};const ma=g.implied_matrix_away||{};
+  return`<table><thead><tr><th>Market</th><th class="num">Home Imp%</th><th class="num">Away Imp%</th>
     <th class="num">Home ML</th><th class="num">H Disparity</th><th class="num">H EV%</th>
   </tr></thead><tbody>
     <tr><td>Kalshi</td>
       <td class="num hl">${fmt(k.home_implied,2)}%</td>
-      <td class="num">${k.home_implied != null ? fmt(100-k.home_implied,2)+'%' : '\u2014'}</td>
+      <td class="num">${k.home_implied!=null?fmt(100-k.home_implied,2)+'%':'\u2014'}</td>
       <td class="num">${fmtAm(k.american)}</td>
       <td class="num ${badgeClass(mh.kalshi_disparity)}">${fmt(mh.kalshi_disparity,2)}%</td>
       <td class="num ${(mh.kalshi_ev??0)>=0?'pos':'neg'}">${fmt(mh.kalshi_ev,2)}%</td></tr>
@@ -323,37 +654,37 @@ function buildPredTab(g) {
       <td class="num ${badgeClass(mh.poly_disparity)}">${fmt(mh.poly_disparity,2)}%</td>
       <td class="num ${(mh.poly_ev??0)>=0?'pos':'neg'}">${fmt(mh.poly_ev,2)}%</td></tr>
   </tbody></table>
-  ${p.question ? `<p style="font-size:.78rem;color:var(--muted);margin-top:8px">Poly Q: ${p.question}</p>` : ''}`;
+  ${p.question?`<p style="font-size:.78rem;color:var(--muted);margin-top:8px">Poly Q: ${p.question}</p>`:''}`;
 }
 
-function buildDispTab(g) {
-  const mh = g.implied_matrix_home || {};
-  return [
-    ['Kalshi Disp', mh.kalshi_disparity],
-    ['Poly Disp',   mh.poly_disparity],
-    ['Kalshi EV%',  mh.kalshi_ev],
-    ['Poly EV%',    mh.poly_ev],
-  ].map(([label, val]) => {
-    if (val == null) return `<div class="bar-row"><span class="bar-label">${label}</span><span style="color:var(--muted)">&mdash;</span></div>`;
-    const w     = Math.min(Math.abs(val) * 10, 100);
-    const color = val >= 3 ? 'var(--green)' : val >= 1 ? 'var(--yellow)' : 'var(--muted)';
-    return `<div class="bar-row">
+function buildDispTab(g){
+  const mh=g.implied_matrix_home||{};
+  return[
+    ['Kalshi Disp',mh.kalshi_disparity],
+    ['Poly Disp',mh.poly_disparity],
+    ['Kalshi EV%',mh.kalshi_ev],
+    ['Poly EV%',mh.poly_ev],
+  ].map(([label,val])=>{
+    if(val==null)return`<div class="bar-row"><span class="bar-label">${label}</span><span style="color:var(--muted)">&mdash;</span></div>`;
+    const w=Math.min(Math.abs(val)*10,100);
+    const color=val>=3?'var(--green)':val>=1?'var(--yellow)':'var(--muted)';
+    return`<div class="bar-row">
       <span class="bar-label">${label}</span>
       <div class="bar-track"><div class="bar-fill" style="width:${w}%;background:${color}"></div></div>
       <span style="color:${color};font-size:.8rem;width:50px;text-align:right">${fmt(val,2)}%</span></div>`;
   }).join('');
 }
 
-function buildPowerTab(g) {
-  const pb = g.per_book || {};
-  const mh = g.implied_matrix_home || {}; const ma = g.implied_matrix_away || {};
-  let rows = '';
-  for (const [book, bd] of Object.entries(pb)) {
-    rows += `<tr><td>${book}</td>
+function buildPowerTab(g){
+  const pb=g.per_book||{};
+  const mh=g.implied_matrix_home||{};const ma=g.implied_matrix_away||{};
+  let rows='';
+  for(const[book,bd]of Object.entries(pb)){
+    rows+=`<tr><td>${book}</td>
       <td class="num">${fmt(bd.away_raw,2)}%</td><td class="num">${fmt(bd.away_nv_prop,2)}%</td><td class="num">${fmt(bd.away_nv_power,2)}%</td>
       <td class="num">${fmt(bd.home_raw,2)}%</td><td class="num">${fmt(bd.home_nv_prop,2)}%</td><td class="num">${fmt(bd.home_nv_power,2)}%</td></tr>`;
   }
-  return `<table><thead><tr><th>Book</th>
+  return`<table><thead><tr><th>Book</th>
     <th class="num">Away Raw%</th><th class="num">Away Prop%</th><th class="num">Away Power%</th>
     <th class="num">Home Raw%</th><th class="num">Home Prop%</th><th class="num">Home Power%</th>
   </tr></thead><tbody>${rows}</tbody>
@@ -362,94 +693,57 @@ function buildPowerTab(g) {
     <td class="num hl">${fmt(mh.power_odds,2)}%</td></tr></tfoot></table>`;
 }
 
-// ===========================================================================
-// WEATHER TAB — v8.4.1  Full render: pressure block, wind vs stadium, indoor
-// ===========================================================================
-function buildWeatherTab(g) {
-  const v  = g.venue || {};
-  const wx = v.weather_context;
-
-  const elevFt = wx?.elevation_ft ?? (v.elevation != null ? v.elevation : null);
-  const elevM  = wx?.elevation_m  ?? (v.elevation != null ? Math.round(v.elevation * 0.3048) : null);
-
-  // Venue info bar
-  const roofType  = wx?.roof_type || v.roof_type || '';
-  const roofBadge = roofType && roofType !== 'OUTDOOR' && roofType !== 'OPEN'
-    ? `<span class="wx-indoor-badge">&#127959; ${roofType}</span>`
-    : (roofType ? `<span class="wx-outdoor-badge">&#127758; ${roofType}</span>` : '');
-
-  const venueInfo = `
+function buildWeatherTab(g){
+  const v=g.venue||{};
+  const wx=v.weather_context;
+  const elevFt=wx?.elevation_ft??(v.elevation!=null?v.elevation:null);
+  const elevM=wx?.elevation_m??(v.elevation!=null?Math.round(v.elevation*0.3048):null);
+  const roofType=wx?.roof_type||v.roof_type||'';
+  const roofBadge=roofType&&roofType!=='OUTDOOR'&&roofType!=='OPEN'
+    ?`<span class="wx-indoor-badge">&#127959; ${roofType}</span>`
+    :(roofType?`<span class="wx-outdoor-badge">&#127758; ${roofType}</span>`:'');
+  const venueInfo=`
     <div class="venue-row">
-      ${v.name  ? `<div class="venue-chip"><b>${v.name}</b>${roofBadge}</div>` : ''}
-      ${v.city  ? `<div class="venue-chip">${v.city}${v.state ? ', '+v.state : ''}</div>` : ''}
-      ${elevFt != null ? `<div class="venue-chip">Elev: <b>${Math.round(elevFt).toLocaleString()} ft</b>${elevM != null?' <span style="font-size:.72rem">('+Math.round(elevM)+' m)</span>':''}</div>` : ''}
-      ${v.orientation_label ? `<div class="venue-chip">Orientation: <b>${v.orientation_label}</b>${v.orientation_deg!=null?' ('+v.orientation_deg.toFixed(0)+'&deg;)':''}</div>` : ''}
-      ${v.lat != null ? `<div class="venue-chip">Coords: <b>${v.lat.toFixed(4)}, ${v.lon.toFixed(4)}</b></div>` : ''}
+      ${v.name?`<div class="venue-chip"><b>${v.name}</b>${roofBadge}</div>`:''}
+      ${v.city?`<div class="venue-chip">${v.city}${v.state?', '+v.state:''}</div>`:''}
+      ${elevFt!=null?`<div class="venue-chip">Elev: <b>${Math.round(elevFt).toLocaleString()} ft</b>${elevM!=null?' <span style="font-size:.72rem">('+Math.round(elevM)+' m)</span>':''}</div>`:''}
+      ${v.orientation_label?`<div class="venue-chip">Orientation: <b>${v.orientation_label}</b>${v.orientation_deg!=null?' ('+v.orientation_deg.toFixed(0)+'&deg;)':''}</div>`:''}
+      ${v.lat!=null?`<div class="venue-chip">Coords: <b>${v.lat.toFixed(4)}, ${v.lon.toFixed(4)}</b></div>`:''}
     </div>`;
-
-  if (!wx) return venueInfo + '<div class="wx-unavail">&#9888; No weather data &mdash; restart server.</div>';
-  if (wx.status !== 'ok') return venueInfo + `<div class="wx-unavail">&#9888; Status: <b>${wx.status}</b></div>`;
-
-  const srcBadge = wx.wx_source ? `<span class="wx-src">${wx.wx_source}</span>` : '';
-  const gameET     = wx.game_time_et_full || wx.game_time_et || wx.game_time_raw || '\u2014';
-  const forecastET = wx.forecast_hour_et_full || wx.forecast_hour_et || wx.forecast_hour_local || wx.forecast_hour_utc || '\u2014';
-
-  const timingBlock = `<div class="wx-timing">
+  if(!wx)return venueInfo+'<div class="wx-unavail">&#9888; No weather data &mdash; restart server.</div>';
+  if(wx.status!=='ok')return venueInfo+`<div class="wx-unavail">&#9888; Status: <b>${wx.status}</b></div>`;
+  const srcBadge=wx.wx_source?`<span class="wx-src">${wx.wx_source}</span>`:'';
+  const gameET=wx.game_time_et_full||wx.game_time_et||wx.game_time_raw||'\u2014';
+  const forecastET=wx.forecast_hour_et_full||wx.forecast_hour_et||wx.forecast_hour_local||wx.forecast_hour_utc||'\u2014';
+  const timingBlock=`<div class="wx-timing">
     <div>&#127942; Game Time: <b>${gameET}</b> ET</div>
     <div>&#127769; Forecast Slot: <b>${forecastET}</b>${srcBadge}</div>
-    ${wx.elev_source ? `<div>Elev Source: <b>${wx.elev_source}</b></div>` : ''}
-    ${wx.roof_closed != null ? `<div>Roof: <b style="color:${wx.roof_closed?'#2ecc71':'#42c5ee'}">${wx.roof_closed?'CLOSED (HVAC)':'OPEN'}</b></div>` : ''}
+    ${wx.elev_source?`<div>Elev Source: <b>${wx.elev_source}</b></div>`:''}
+    ${wx.roof_closed!=null?`<div>Roof: <b style="color:${wx.roof_closed?'#2ecc71':'#42c5ee'}">${wx.roof_closed?'CLOSED (HVAC)':'OPEN'}</b></div>`:''}
   </div>`;
-
-  // Pull density from nested block (v8.4+) or flat fallback
-  const pd = wx.pressure_density || {};
-  const rho      = pd.air_density_kgm3      ?? wx.air_density_kgm3;
-  const pctSL    = pd.density_pct_of_isa_sealevel   ?? wx.density_pct_of_isa_sealevel;
-  const pctElev  = pd.density_pct_of_isa_elevation  ?? wx.density_pct_of_isa_elevation;
-  const daFt     = pd.density_altitude_ft   ?? wx.density_altitude_ft;
-  const stHpa    = pd.station_pressure_hpa  ?? wx.station_pressure_hpa;
-  const stInhg   = pd.station_pressure_inhg ?? wx.station_pressure_inhg;
-  const stPa     = pd.station_pressure_pa   ?? (stHpa ? stHpa * 100 : null);
-  const mslpHpa  = pd.sea_level_pressure_hpa  ?? wx.sea_level_pressure_hpa;
-  const mslpInhg = pd.sea_level_pressure_inhg ?? wx.sea_level_pressure_inhg;
-  const precipIn = wx.precipitation_inh ?? (wx.precipitation_mmh != null ? wx.precipitation_mmh / 25.4 : null);
-
-  // Main weather cards
-  const cards = [
-    { label: 'Air Density',
-      val:  rho != null ? `${rho.toFixed(5)} kg/m&#179;` : '\u2014',
-      sub:  `${fmt(pctSL,2)}% ISA sea-level<br>${fmt(pctElev,2)}% ISA @ elev` },
-    { label: 'Station Pressure',
-      val:  stInhg != null ? `${stInhg.toFixed(4)} inHg` : '\u2014',
-      sub:  `${stHpa != null ? stHpa.toFixed(2) : '\u2014'} hPa &nbsp;|&nbsp; ${stPa != null ? stPa.toFixed(0) : '\u2014'} Pa` },
-    { label: 'Temperature',
-      val:  `${fmt(wx.temperature_f,1)} &#176;F`,
-      sub:  `${fmt(wx.temperature_c,1)} &#176;C` },
-    { label: 'Rel. Humidity',
-      val:  `${fmt(wx.relative_humidity_pct,0)}%`,
-      sub:  'At venue elevation' },
-    { label: 'Wind Speed',
-      val:  wx.wind_speed_mph != null ? `${wx.wind_speed_mph.toFixed(1)} mph` : '\u2014',
-      sub:  wx.wind_speed_kmh != null ? `${wx.wind_speed_kmh.toFixed(1)} km/h` : '' },
-    { label: 'Wind Direction',
-      val:  (() => {
-        const ws = wx.wind_vs_stadium || {};
-        if (ws.wind_dir_label) return `${ws.wind_dir_label} (${ws.wind_dir_deg != null ? ws.wind_dir_deg.toFixed(0) : '\u2014'}&deg;)`;
-        if (wx.wind_direction_deg != null) return `${wx.wind_direction_deg.toFixed(0)}&deg;`;
-        return '\u2014';
-      })(),
-      sub:  'Meteorological (from)' },
-    { label: 'Precipitation',
-      val:  precipIn != null ? `${precipIn.toFixed(3)} in/h` : '\u2014',
-      sub:  `${fmt(wx.precipitation_mmh,2)} mm/h` },
-    { label: 'Density Altitude',
-      val:  daFt != null ? `${daFt.toLocaleString()} ft` : '\u2014',
-      sub:  daFt != null ? `${Math.round(daFt*0.3048).toLocaleString()} m` : '' },
+  const pd=wx.pressure_density||{};
+  const rho=pd.air_density_kgm3??wx.air_density_kgm3;
+  const pctSL=pd.density_pct_of_isa_sealevel??wx.density_pct_of_isa_sealevel;
+  const pctElev=pd.density_pct_of_isa_elevation??wx.density_pct_of_isa_elevation;
+  const daFt=pd.density_altitude_ft??wx.density_altitude_ft;
+  const stHpa=pd.station_pressure_hpa??wx.station_pressure_hpa;
+  const stInhg=pd.station_pressure_inhg??wx.station_pressure_inhg;
+  const stPa=pd.station_pressure_pa??(stHpa?stHpa*100:null);
+  const mslpHpa=pd.sea_level_pressure_hpa??wx.sea_level_pressure_hpa;
+  const mslpInhg=pd.sea_level_pressure_inhg??wx.sea_level_pressure_inhg;
+  const precipIn=wx.precipitation_inh??(wx.precipitation_mmh!=null?wx.precipitation_mmh/25.4:null);
+  const cards=[
+    {label:'Air Density',val:rho!=null?`${rho.toFixed(5)} kg/m&#179;`:'\u2014',sub:`${fmt(pctSL,2)}% ISA sea-level<br>${fmt(pctElev,2)}% ISA @ elev`},
+    {label:'Station Pressure',val:stInhg!=null?`${stInhg.toFixed(4)} inHg`:'\u2014',sub:`${stHpa!=null?stHpa.toFixed(2):'\u2014'} hPa &nbsp;|&nbsp; ${stPa!=null?stPa.toFixed(0):'\u2014'} Pa`},
+    {label:'Temperature',val:`${fmt(wx.temperature_f,1)} &#176;F`,sub:`${fmt(wx.temperature_c,1)} &#176;C`},
+    {label:'Rel. Humidity',val:`${fmt(wx.relative_humidity_pct,0)}%`,sub:'At venue elevation'},
+    {label:'Wind Speed',val:wx.wind_speed_mph!=null?`${wx.wind_speed_mph.toFixed(1)} mph`:'\u2014',sub:wx.wind_speed_kmh!=null?`${wx.wind_speed_kmh.toFixed(1)} km/h`:''},
+    {label:'Wind Direction',val:(()=>{const ws=wx.wind_vs_stadium||{};if(ws.wind_dir_label)return`${ws.wind_dir_label} (${ws.wind_dir_deg!=null?ws.wind_dir_deg.toFixed(0):'\u2014'}&deg;)`;if(wx.wind_direction_deg!=null)return`${wx.wind_direction_deg.toFixed(0)}&deg;`;return'\u2014';})(),sub:'Meteorological (from)'},
+    {label:'Precipitation',val:precipIn!=null?`${precipIn.toFixed(3)} in/h`:'\u2014',sub:`${fmt(wx.precipitation_mmh,2)} mm/h`},
+    {label:'Density Altitude',val:daFt!=null?`${daFt.toLocaleString()} ft`:'\u2014',sub:daFt!=null?`${Math.round(daFt*0.3048).toLocaleString()} m`:''},
   ];
-  const grid = `<div class="wx-grid">${cards.map(c=>`<div class="wx-card"><small>${c.label}</small><b>${c.val}</b><span>${c.sub}</span></div>`).join('')}</div>`;
-
-  // ---- Absolute Pressure block ----
-  const pressureBlock = `<div class="wx-section">
+  const grid=`<div class="wx-grid">${cards.map(c=>`<div class="wx-card"><small>${c.label}</small><b>${c.val}</b><span>${c.sub}</span></div>`).join('')}</div>`;
+  const pressureBlock=`<div class="wx-section">
     <div class="wx-section-title">&#128207; True Absolute Pressure</div>
     <div class="wx-row">
       <div class="wx-kv"><small>Station (Absolute)</small><b>${stInhg!=null?stInhg.toFixed(4):'\u2014'} inHg</b></div>
@@ -458,13 +752,11 @@ function buildWeatherTab(g) {
       <div class="wx-kv"><small>Sea-Level Ref (MSLP)</small><b>${mslpInhg!=null?mslpInhg.toFixed(3):'\u2014'} inHg&nbsp;<span style="font-size:.7rem;color:var(--muted)">(display only)</span></b></div>
       ${mslpHpa!=null?`<div class="wx-kv"><small>MSLP hPa</small><b>${mslpHpa.toFixed(2)}</b></div>`:''}
     </div>
-    <div style="margin-top:6px;font-size:.74rem;color:var(--muted)">Station pressure = true absolute surface pressure at venue elevation. MSLP is normalised to sea level for reference only &mdash; never use for density calcs.</div>
+    <div style="margin-top:6px;font-size:.74rem;color:var(--muted)">Station pressure = true absolute surface pressure at venue elevation. MSLP is normalised to sea level for reference only.</div>
   </div>`;
-
-  // ---- ISA reference ----
-  const isa = pd.isa_at_elevation || wx.isa_at_elevation || {};
-  const isaFt  = isa.elevation_m != null ? Math.round(isa.elevation_m * 3.28084) : elevFt;
-  const isaBlock = isa.pressure_hpa ? `<div class="wx-section">
+  const isa=pd.isa_at_elevation||wx.isa_at_elevation||{};
+  const isaFt=isa.elevation_m!=null?Math.round(isa.elevation_m*3.28084):elevFt;
+  const isaBlock=isa.pressure_hpa?`<div class="wx-section">
     <div class="wx-section-title">&#127760; ISA Reference @ ${isaFt!=null?isaFt.toLocaleString()+' ft':'venue elev'}</div>
     <div class="wx-row">
       <div class="wx-kv"><small>ISA Pressure</small><b>${isa.pressure_inhg!=null?isa.pressure_inhg.toFixed(4):'\u2014'} inHg</b></div>
@@ -472,13 +764,11 @@ function buildWeatherTab(g) {
       <div class="wx-kv"><small>ISA Density</small><b>${isa.density_kgm3!=null?isa.density_kgm3.toFixed(5):'\u2014'} kg/m&#179;</b></div>
       <div class="wx-kv"><small>ISA Temp</small><b>${isa.temp_c!=null?isa.temp_c.toFixed(1):'\u2014'} &#176;C</b></div>
     </div>
-  </div>` : '';
-
-  // ---- Wind vs Stadium ----
-  const wvs = wx.wind_vs_stadium || {};
-  let windBlock = '';
-  if (wvs.status === 'ok') {
-    windBlock = `<div class="wx-wind-panel">
+  </div>`:'';
+  const wvs=wx.wind_vs_stadium||{};
+  let windBlock='';
+  if(wvs.status==='ok'){
+    windBlock=`<div class="wx-wind-panel">
       <div class="wx-section-title" style="color:#7ee8ff">&#127788; Wind vs Stadium Orientation</div>
       <div class="wx-row">
         <div class="wx-kv"><small>Wind From</small><b>${wvs.wind_dir_label||'\u2014'} (${wvs.wind_dir_deg!=null?wvs.wind_dir_deg.toFixed(0):'\u2014'}&deg;)</b></div>
@@ -489,30 +779,19 @@ function buildWeatherTab(g) {
         <div class="wx-kv"><small>Effect</small><b style="color:#f1c40f">${wvs.wind_effect_label||'\u2014'}</b></div>
       </div>
     </div>`;
-  } else if (wvs.status === 'not_applicable_indoor') {
-    windBlock = `<div class="wx-wind-panel">
-      <div class="wx-section-title" style="color:#7ee8ff">&#127788; Wind vs Stadium</div>
-      <span style="color:var(--muted)">&#127959; Indoor / roofed venue &mdash; wind analysis not applicable. ${wvs.note||''}</span>
-    </div>`;
-  } else if (wvs.status === 'insufficient_data' && wvs.wind_dir_deg != null) {
-    windBlock = `<div class="wx-wind-panel">
-      <div class="wx-section-title" style="color:#7ee8ff">&#127788; Wind Direction</div>
-      <span style="color:var(--muted)">Wind from ${wvs.wind_dir_label||''} (${wvs.wind_dir_deg.toFixed(0)}&deg;) &mdash; no stadium orientation on file for headwind calc.</span>
-    </div>`;
+  } else if(wvs.status==='not_applicable_indoor'){
+    windBlock=`<div class="wx-wind-panel"><div class="wx-section-title" style="color:#7ee8ff">&#127788; Wind vs Stadium</div><span style="color:var(--muted)">&#127959; Indoor/roofed venue &mdash; wind N/A. ${wvs.note||''}</span></div>`;
+  } else if(wvs.status==='insufficient_data'&&wvs.wind_dir_deg!=null){
+    windBlock=`<div class="wx-wind-panel"><div class="wx-section-title" style="color:#7ee8ff">&#127788; Wind Direction</div><span style="color:var(--muted)">Wind from ${wvs.wind_dir_label||''} (${wvs.wind_dir_deg.toFixed(0)}&deg;) &mdash; no stadium orientation on file.</span></div>`;
   }
-
-  // ---- Indoor HVAC block ----
-  let indoorBlock = '';
-  if (wx.roof_closed) {
-    const indoorRho = rho; // already uses HVAC model
-    const outdoorRho = pd.outdoor_density_kgm3;
-    const deltaStr   = pd.density_pct_vs_outdoor != null
-      ? `${pd.density_pct_vs_outdoor >= 0 ? '+' : ''}${pd.density_pct_vs_outdoor.toFixed(2)}% vs outdoor`
-      : '';
-    indoorBlock = `<div class="wx-indoor">
-      <b>&#127959; Indoor / HVAC Baseline</b> &nbsp;&mdash;&nbsp; ${pd.indoor_temp_f != null ? pd.indoor_temp_f+'&#176;F' : '70&#176;F'} / ${pd.indoor_rh_pct != null ? pd.indoor_rh_pct+'%' : '45%'} RH (estimated)<br>
+  let indoorBlock='';
+  if(wx.roof_closed){
+    const outdoorRho=pd.outdoor_density_kgm3;
+    const deltaStr=pd.density_pct_vs_outdoor!=null?`${pd.density_pct_vs_outdoor>=0?'+':''}${pd.density_pct_vs_outdoor.toFixed(2)}% vs outdoor`:'';
+    indoorBlock=`<div class="wx-indoor">
+      <b>&#127959; Indoor / HVAC Baseline</b> &nbsp;&mdash;&nbsp; ${pd.indoor_temp_f!=null?pd.indoor_temp_f+'&#176;F':'70&#176;F'} / ${pd.indoor_rh_pct!=null?pd.indoor_rh_pct+'%':'45%'} RH (estimated)<br>
       <div class="wx-row">
-        <div class="wx-kv"><small>Indoor Density</small><b>${indoorRho!=null?indoorRho.toFixed(5):'\u2014'} kg/m&#179;</b></div>
+        <div class="wx-kv"><small>Indoor Density</small><b>${rho!=null?rho.toFixed(5):'\u2014'} kg/m&#179;</b></div>
         ${outdoorRho!=null?`<div class="wx-kv"><small>Outdoor Density</small><b>${outdoorRho.toFixed(5)} kg/m&#179;</b></div>`:''}
         ${deltaStr?`<div class="wx-kv"><small>Delta vs Outdoor</small><b>${deltaStr}</b></div>`:''}
         ${daFt!=null?`<div class="wx-kv"><small>Density Altitude</small><b>${daFt.toLocaleString()} ft</b></div>`:''}
@@ -520,22 +799,26 @@ function buildWeatherTab(g) {
       <div style="margin-top:5px;font-size:.74rem;color:#6ab87a">${pd.note||'HVAC baseline. Absolute pressure same as outdoors — buildings are not hermetically sealed.'}</div>
     </div>`;
   }
-
-  const note = `<div class="wx-note">Station pressure = absolute surface pressure at venue elevation, not sea-level adjusted. MSLP shown for reference only. Indoor density uses HVAC baseline (70&deg;F / 45% RH); absolute pressure is always from outdoor station. Density altitude accounts for temperature and humidity deviation from ISA standard.</div>`;
-
-  return venueInfo + timingBlock + grid + pressureBlock + isaBlock + windBlock + indoorBlock + note;
+  const note=`<div class="wx-note">Station pressure = absolute surface pressure at venue elevation, not sea-level adjusted. MSLP shown for reference only. Indoor density uses HVAC baseline (70°F / 45% RH). Density altitude accounts for temperature and humidity deviation from ISA standard.</div>`;
+  return venueInfo+timingBlock+grid+pressureBlock+isaBlock+windBlock+indoorBlock+note;
 }
 
-document.getElementById('sport-tabs').addEventListener('click', e => {
-  const btn = e.target.closest('.sport-tab');
-  if (!btn) return;
-  document.querySelectorAll('.sport-tab').forEach(b => b.classList.remove('active'));
+document.getElementById('sport-tabs').addEventListener('click',e=>{
+  const btn=e.target.closest('.sport-tab');
+  if(!btn)return;
+  if(_settingsOpen){
+    _settingsOpen=false;
+    document.getElementById('settings-btn').classList.remove('active');
+    document.getElementById('settings-panel').classList.remove('open');
+    document.getElementById('game-list').style.display='flex';
+  }
+  document.querySelectorAll('.sport-tab').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  _activeSport = btn.dataset.sport;
+  _activeSport=btn.dataset.sport;
   renderGames();
 });
 
-document.getElementById('refresh-btn').addEventListener('click', loadDashboard);
+document.getElementById('refresh-btn').addEventListener('click',loadDashboard);
 loadDashboard();
 </script>
 </body>
