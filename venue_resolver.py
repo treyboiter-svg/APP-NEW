@@ -53,7 +53,7 @@ def clean_source_name(raw: str) -> str:
     """Remove records, rankings, and final MLB pitcher/handedness suffixes."""
     s = _camel_split(str(raw or "").strip())
     s = re.sub("[ ]+[A-Za-z.'-]+[ ]*[(][LRlr][)][ ]*$", "", s)
-    s = re.sub("[ ]*[0-9]{1,3}[-–][0-9]{1,3}([-–][0-9]{1,3})?[ ]*$", "", s)
+    s = re.sub("[ ]*[0-9]{1,3}[-\u2013][0-9]{1,3}([-\u2013][0-9]{1,3})?[ ]*$", "", s)
     s = re.sub("^#?[ ]*[0-9]+[ ]+", "", s)
     return " ".join(s.split())
 
@@ -101,14 +101,11 @@ class VenueResolver:
             if parts:
                 aliases[(row.league, " ".join(sorted(parts)))] = row
                 team_words = _fold(row.team).split()
-                # Last two words identify composite mascots such as Red Sox / White Sox.
                 if len(team_words) >= 2:
                     aliases[(row.league, " ".join(team_words[-2:]))] = row
-                # A unique mascot token is a deterministic alias; ambiguous city tokens never are.
                 for token in parts:
                     if token_counts.get((row.league, token)) == 1:
                         aliases[(row.league, token)] = row
-        # Explicit stable aliases not guaranteed by raw feeds.
         manual = {
             ("MLB", "a s"): "Athletics", ("MLB", "oakland athletics"): "Athletics",
             ("MLB", "sacramento athletics"): "Athletics", ("NFL", "niners"): "San Francisco 49ers",
@@ -129,8 +126,6 @@ class VenueResolver:
         direct = self.aliases.get((league, folded))
         if direct: return direct, 1.0, cleaned
         raw_tokens = _tokens(cleaned)
-        # Source labels can append one or more pitcher-name words (e.g. "Mets Mc Lean (R)").
-        # Accept a league-scoped team alias only if every alias word exists in the label.
         contained = []
         for (alias_league, alias), row in self.aliases.items():
             alias_tokens = set(alias.split())
@@ -153,7 +148,6 @@ class VenueResolver:
         away, away_score, away_clean = self.resolve_team(sport, away_raw)
         home, home_score, home_clean = self.resolve_team(sport, home_raw)
         accepted = bool(away and home and away.team != home.team)
-        # A legitimate non-neutral home game must resolve to an authoritative venue row.
         reason = "accepted" if accepted else "unresolved_team_or_same_team"
         return {
             "accepted": accepted, "reason": reason,
@@ -172,7 +166,6 @@ class VenueResolver:
             away_hit = len(away_tokens & ct) / max(1, len(away_tokens))
             home_hit = len(home_tokens & ct) / max(1, len(home_tokens))
             venue_hit = 1.0 if _fold(home.city) in _fold(candidate) or _fold(home.venue) in _fold(candidate) else 0.0
-            # Both teams are mandatory. City/venue can strengthen, never substitute for a team.
             if away_hit >= 0.5 and home_hit >= 0.5:
                 score = 0.45 * away_hit + 0.45 * home_hit + 0.10 * venue_hit
                 if score > best_score: best_key, best_score, method = candidate, score, "both_canonical_teams"
@@ -182,4 +175,6 @@ class VenueResolver:
 
 
 def default_workbook_path() -> Path:
-    return Path(__file__).resolve().parents[3] / "US_SPORTS_VENUES_MASTER_CORRECTED_V2.xlsx"
+    # The xlsx file lives in the SAME directory as this file (the project root).
+    # parents[0] = directory containing venue_resolver.py = project root.
+    return Path(__file__).resolve().parent / "US_SPORTS_VENUES_MASTER_CORRECTED_V2.xlsx"
