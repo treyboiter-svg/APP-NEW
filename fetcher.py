@@ -1,5 +1,6 @@
-"""fetcher.py — OverlineEdge v8 (Python 3.14 compatible)
-Imports directly from root-level modules. No app.* prefix.
+"""fetcher.py — OverlineEdge v8.4.1
+WNBA now routed through wnba_venues standalone DB (zero contact with main workbook).
+All other sports use VenueResolver as before.
 """
 from __future__ import annotations
 import asyncio, concurrent.futures, hashlib, json, logging, re
@@ -10,6 +11,7 @@ import httpx, pytz
 from config import KALSHI_BASE, KALSHI_SERIES, POLY_GAMMA, POLY_SERIES, SPORT_KEYS
 from normalizer import normalize_team
 from venue_resolver import VenueResolver, default_workbook_path, _fold, _tokens
+from wnba_venues import resolve_wnba_team, wnba_venue_block
 from odds_calc import (
     american_to_implied, remove_vig_proportional, remove_vig_power,
     implied_to_american, build_implied_matrix, power_odds, vig_percent,
@@ -37,6 +39,60 @@ _BOOKS = [
 
 _AMERICAN_RE = re.compile(r"(?<![\d.])[+-](?:100|[1-9]\d{2,3})(?![\d.])")
 _NUMBER_RE   = re.compile(r"(?<![\d.])[+-]?\d+(?:\.\d+)?(?![\d.])")
+
+# ---------------------------------------------------------------------------
+# WNBA team resolution  — completely bypasses main venue workbook
+# ---------------------------------------------------------------------------
+
+def _resolve_wnba_game(away_raw: str, home_raw: str) -> dict:
+    """
+    Resolve a WNBA game using the standalone wnba_venues DB.
+    Returns a dict mirroring the shape of VenueResolver.validate_game().
+    """
+    away_venue = resolve_wnba_team(away_raw)
+    home_venue = resolve_wnba_team(home_raw)
+
+    if away_venue is None:
+        logger.warning("WNBA unresolved away: %r", away_raw)
+        return {"accepted": False, "reason": "wnba_unresolved_away"}
+    if home_venue is None:
+        logger.warning("WNBA unresolved home: %r", home_raw)
+        return {"accepted": False, "reason": "wnba_unresolved_home"}
+    if away_venue.team == home_venue.team:
+        return {"accepted": False, "reason": "wnba_same_team"}
+
+    # Build lightweight identity objects compatible with the rest of the pipeline
+    class _WNBATeamRecord:
+        def __init__(self, v, league="wnba"):
+            self.team   = v.team
+            self.venue  = v.venue
+            self.city   = v.city
+            self.state  = v.state
+            self.lat    = v.lat
+            self.lon    = v.lon
+            self.elevation      = v.elevation_ft
+            self.elevation_m    = v.elevation_m
+            self.orientation_deg        = v.orientation_deg
+            self.orientation_label      = v.orientation_label
+            self.orientation_confidence = 1.0
+            self.roof_type              = v.roof_type
+            self.is_indoor              = v.roof_type in ("INDOOR", "DOME")
+            self.is_retractable         = v.roof_type == "RETRACTABLE"
+            self.league = league
+
+    return {
+        "accepted":   True,
+        "away":       _WNBATeamRecord(away_venue),
+        "home":       _WNBATeamRecord(home_venue),
+        "away_score": 1.0,
+        "home_score": 1.0,
+        "reason":     "wnba_standalone_db",
+    }
+
+
+# ---------------------------------------------------------------------------
+# Parsing helpers
+# ---------------------------------------------------------------------------
 
 def _valid_american(value):
     try: value = int(value)
@@ -99,16 +155,30 @@ def _parse_market_cell(book, bet_type):
 def _book_payload(bk):
     return " ".join(str(bk.get(k) or "") for k in ("value", "moneyline", "raw")).strip()
 
+# ---------------------------------------------------------------------------
+# Book map builder — WNBA uses standalone resolver
+# ---------------------------------------------------------------------------
+
 def _build_book_map(scrape_results, sport=""):
     merged = {}
+    is_wnba = (sport == "wnba")
     for bt, games in scrape_results.items():
         for g in games:
             teams = g.get("teams", [])
             if len(teams) < 2: continue
-            resolved = _resolver().validate_game(sport, teams[0].get("name", ""), teams[1].get("name", ""))
+            away_raw = teams[0].get("name", "")
+            home_raw = teams[1].get("name", "")
+
+            if is_wnba:
+                resolved = _resolve_wnba_game(away_raw, home_raw)
+            else:
+                resolved = _resolver().validate_game(sport, away_raw, home_raw)
+
             if not resolved["accepted"]:
-                logger.warning("Rejected sportsbook row [%s]: away=%r home=%r reason=%s", sport, teams[0].get("name", ""), teams[1].get("name", ""), resolved["reason"])
+                logger.warning("Rejected sportsbook row [%s]: away=%r home=%r reason=%s",
+                               sport, away_raw, home_raw, resolved["reason"])
                 continue
+
             away = resolved["away"].team
             home = resolved["home"].team
             key  = (away, home)
@@ -118,10 +188,14 @@ def _build_book_map(scrape_results, sport=""):
                     idx   = bk.get("index", 0)
                     entry = merged[key]["books"].setdefault(idx, {})
                     ih    = si == 1
-                    if bt == "moneyline":   entry["ml_home"      if ih else "ml_away"]      = _parse_market_cell(bk, "moneyline")
-                    elif bt == "spread":    entry["spread_home"  if ih else "spread_away"]  = _parse_market_cell(bk, "spread")
-                    elif bt == "total":     entry["total_over"   if si == 0 else "total_under"] = _parse_market_cell(bk, "total")
+                    if bt == "moneyline":  entry["ml_home"     if ih else "ml_away"]      = _parse_market_cell(bk, "moneyline")
+                    elif bt == "spread":   entry["spread_home" if ih else "spread_away"]  = _parse_market_cell(bk, "spread")
+                    elif bt == "total":    entry["total_over"  if si == 0 else "total_under"] = _parse_market_cell(bk, "total")
     return merged
+
+# ---------------------------------------------------------------------------
+# Book aggregation
+# ---------------------------------------------------------------------------
 
 def _aggregate_books(books_by_idx):
     per_book = {}
@@ -177,6 +251,10 @@ def _aggregate_books(books_by_idx):
     sp_cons  = {s: {"implied": round(sum(v) / len(v), 4)} for s, v in sp_agg.items()  if v}
     tot_cons = {s: {"implied": round(sum(v) / len(v), 4)} for s, v in tot_agg.items() if v}
     return per_book, consensus, sp_cons, tot_cons
+
+# ---------------------------------------------------------------------------
+# Prediction market fetchers
+# ---------------------------------------------------------------------------
 
 async def _fetch_kalshi(sport_label, client):
     markets = []
@@ -246,10 +324,18 @@ def _parse_poly(markets):
 def _poly_for_game(raw, identity):
     if not raw: return {}
     away, home = identity["away"].team, identity["home"].team
+    # For WNBA we can't call _resolver().resolve_team — use simple string match
+    is_wnba = getattr(identity["home"], "league", "") == "wnba"
     resolved = []
     for label, price in zip(raw.get("outcomes", []), raw.get("outcome_prices", [])):
-        team, score, _ = _resolver().resolve_team(identity["home"].league, label)
-        resolved.append((team.team if team and score >= 0.90 else None, price))
+        if is_wnba:
+            v = resolve_wnba_team(label)
+            team_name = v.team if v else None
+            score = 0.95 if team_name else 0.0
+        else:
+            team_obj, score, _ = _resolver().resolve_team(identity["home"].league, label)
+            team_name = team_obj.team if team_obj and score >= 0.90 else None
+        resolved.append((team_name, price))
     by_team = {team: price for team, price in resolved if team}
     if not by_team and {x.lower() for x in raw.get("outcomes", [])} >= {"yes", "no"}:
         q = raw.get("question", "")
@@ -262,7 +348,12 @@ def _poly_for_game(raw, identity):
     if hp is None or ap is None: return {}
     return {"home_implied": hp, "away_implied": ap, "american": implied_to_american(hp), "question": raw.get("question"), "event_title": raw.get("event_title"), "outcomes": raw.get("outcomes"), "price_mapping": "explicit_outcome_or_verified_yes_subject"}
 
+# ---------------------------------------------------------------------------
+# build_sport — main pipeline
+# ---------------------------------------------------------------------------
+
 async def build_sport(sport_label, sport_slug, client):
+    is_wnba = (sport_label == "wnba")
     loop = asyncio.get_running_loop()
     async with _SEM:
         scrape_results, _ = await loop.run_in_executor(_POOL, scrape_sport, sport_slug)
@@ -272,6 +363,7 @@ async def build_sport(sport_label, sport_slug, client):
     poly_map = _parse_poly(poly_raw)
     games    = []
     date_str = datetime.now(ET_TZ).strftime("%Y-%m-%d")
+
     for (away, home), gdata in book_map.items():
         pb, cons, sp, tot = _aggregate_books(gdata.get("books", {}))
         missing_prices = {"moneyline": [], "spread": [], "total": []}
@@ -282,15 +374,34 @@ async def build_sport(sport_label, sport_slug, client):
                 if value.get("american") is None: missing_prices["spread"].append({"book": book_name, "side": side, "line": value.get("point"), "reason": "source_price_not_exposed"})
             for side, value in book_data.get("totals", {}).items():
                 if value.get("american") is None: missing_prices["total"].append({"book": book_name, "side": side, "line": value.get("point"), "reason": "source_price_not_exposed"})
-        identity = _resolver().validate_game(sport_label, away, home)
+
+        # Resolve identity — WNBA uses standalone DB
+        if is_wnba:
+            identity = _resolve_wnba_game(away, home)
+        else:
+            identity = _resolver().validate_game(sport_label, away, home)
+
         if not identity["accepted"]:
             logger.error("Invariant violation: invalid assembled game [%s] %s @ %s", sport_label, away, home)
             continue
-        km, kalshi_match_score, kalshi_match_method = _resolver().match_market(identity, kal_map.keys())
-        pm, poly_match_score,   poly_match_method   = _resolver().match_market(identity, poly_map.keys())
+
+        # Prediction market matching — WNBA uses simple fold matching
+        if is_wnba:
+            away_fold = away.lower(); home_fold = home.lower()
+            km = next((k for k in kal_map if away_fold.split()[-1] in k and home_fold.split()[-1] in k), None)
+            pm = next((k for k in poly_map if away_fold.split()[-1] in k and home_fold.split()[-1] in k), None)
+            kalshi_match_score  = 0.9 if km else 0.0
+            poly_match_score    = 0.9 if pm else 0.0
+            kalshi_match_method = "wnba_nickname_fold" if km else "no_match"
+            poly_match_method   = "wnba_nickname_fold" if pm else "no_match"
+        else:
+            km, kalshi_match_score, kalshi_match_method = _resolver().match_market(identity, kal_map.keys())
+            pm, poly_match_score,   poly_match_method   = _resolver().match_market(identity, poly_map.keys())
+
         kal = kal_map.get(km, {}) if km else {}
         pol = _poly_for_game(poly_map.get(pm, {}), identity) if pm else {}
         if pm and not pol: poly_match_method = "rejected_ambiguous_outcome_side"
+
         nv_h  = (cons.get("home") or {}).get("no_vig_implied")
         nv_a  = (cons.get("away") or {}).get("no_vig_implied")
         pow_h = power_odds([bd.get("home_nv_prop") for bd in pb.values()])
@@ -300,22 +411,29 @@ async def build_sport(sport_label, sport_slug, client):
         k_a   = round(100 - k_h, 4) if k_h is not None else None
         p_a   = pol.get("away_implied")
         gid   = hashlib.sha1(f"{sport_label}|{away}|{home}|{date_str}".encode()).hexdigest()[:12]
+
+        # Build venue block
+        hi = identity["home"]
         venue_block = {
-            "name":                   identity["home"].venue,
-            "city":                   identity["home"].city,
-            "state":                  identity["home"].state,
-            "lat":                    identity["home"].lat,
-            "lon":                    identity["home"].lon,
-            "elevation":              identity["home"].elevation,
-            "orientation_deg":        identity["home"].orientation_deg,
-            "orientation_label":      identity["home"].orientation_label,
-            "orientation_confidence": identity["home"].orientation_confidence,
+            "name":                   hi.venue,
+            "city":                   hi.city,
+            "state":                  hi.state,
+            "lat":                    hi.lat,
+            "lon":                    hi.lon,
+            "elevation":              hi.elevation,
+            "orientation_deg":        hi.orientation_deg,
+            "orientation_label":      hi.orientation_label,
+            "orientation_confidence": hi.orientation_confidence,
+            "roof_type":              getattr(hi, "roof_type", "OUTDOOR"),
+            "is_indoor":              getattr(hi, "is_indoor", False),
+            "is_retractable":         getattr(hi, "is_retractable", False),
         }
         try:
             venue_block = await enrich_venue(venue_block, gdata.get("time", ""), client)
         except Exception as wx_exc:
             logger.warning("Weather enrichment failed [%s] %s @ %s: %s", sport_label, away, home, wx_exc)
             venue_block["weather_context"] = {"status": "enrichment_exception", "detail": str(wx_exc)}
+
         games.append({
             "game_id":   gid, "sport": sport_label,
             "title":     f"{away} @ {home}", "home": home, "away": away,
