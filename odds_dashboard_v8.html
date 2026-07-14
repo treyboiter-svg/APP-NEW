@@ -9,7 +9,6 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:14px}
 
-/* ---- TOP BAR ---- */
 .topbar{display:flex;align-items:center;gap:16px;padding:14px 20px;background:#061523;border-bottom:1px solid var(--border);flex-wrap:wrap}
 .topbar h1{font-size:1.3rem;color:var(--accent);white-space:nowrap}
 .sport-tabs{display:flex;gap:6px;flex-wrap:wrap}
@@ -19,7 +18,6 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,
 .refresh-btn:hover{background:#234f72}
 #last-updated{font-size:.78rem;color:var(--muted);margin-left:6px}
 
-/* ---- GAME LIST ---- */
 #game-list{padding:12px 16px;display:flex;flex-direction:column;gap:8px}
 .game-row{background:var(--panel);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:.15s;overflow:hidden}
 .game-row:hover{border-color:var(--accent)}
@@ -34,7 +32,6 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,
 .badge-blue{background:#0b2e42;color:var(--accent);border:1px solid #1a5070}
 .badge-density{background:#0c2235;color:#7ee8ff;border:1px solid #1e4e6a;font-size:.72rem}
 
-/* ---- DETAIL PANEL ---- */
 .detail-panel{display:none;border-top:1px solid var(--border);background:var(--panel2)}
 .detail-panel.open{display:block}
 .tab-bar{display:flex;gap:0;border-bottom:1px solid var(--border);overflow-x:auto}
@@ -43,7 +40,6 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,
 .tab-content{display:none;padding:14px}
 .tab-content.active{display:block}
 
-/* ---- TABLES ---- */
 table{width:100%;border-collapse:collapse;font-size:.82rem}
 th{text-align:left;padding:6px 10px;color:var(--muted);border-bottom:1px solid var(--border);font-weight:600}
 td{padding:6px 10px;border-bottom:1px solid #0d2030}
@@ -53,30 +49,30 @@ tr:last-child td{border:none}
 .pos{color:var(--green)}
 .neg{color:var(--red)}
 
-/* ---- WEATHER PANEL ---- */
+/* Weather */
 .wx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px;margin-bottom:14px}
 .wx-card{background:#08192a;border:1px solid var(--border);border-radius:9px;padding:12px}
 .wx-card small{display:block;color:var(--muted);font-size:.76rem;margin-bottom:3px}
 .wx-card b{display:block;font-size:1.25rem;color:var(--accent)}
 .wx-card span{font-size:.78rem;color:var(--muted)}
+.wx-timing{margin-bottom:12px;padding:9px 12px;background:#06111d;border:1px solid var(--border);border-radius:8px;font-size:.8rem;color:var(--muted);display:flex;gap:24px;flex-wrap:wrap}
+.wx-timing b{color:#7ee8ff}
 .wx-isa{margin-top:10px;padding:10px 12px;background:#06111d;border:1px solid var(--border);border-radius:8px;font-size:.8rem;color:var(--muted)}
 .wx-isa b{color:#7ee8ff}
 .wx-indoor{margin-top:10px;padding:10px 12px;background:#0a1f10;border:1px solid #1a4a26;border-radius:8px;font-size:.8rem}
 .wx-indoor b{color:#2ecc71}
 .wx-note{margin-top:8px;font-size:.76rem;color:var(--muted);line-height:1.5;border-left:2px solid var(--border);padding-left:8px}
 .wx-unavail{padding:20px;text-align:center;color:var(--muted);font-size:.88rem}
+.wx-src{display:inline-block;padding:1px 6px;border-radius:4px;font-size:.7rem;background:#0d2235;border:1px solid #1e4060;color:var(--muted);margin-left:6px;vertical-align:middle}
 
-/* ---- VENUE BLOCK ---- */
 .venue-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;font-size:.82rem}
 .venue-chip{background:#081927;border:1px solid var(--border);border-radius:6px;padding:3px 8px;color:var(--muted)}
 .venue-chip b{color:var(--text)}
 
-/* ---- LOADING ---- */
 #loading{text-align:center;padding:40px;color:var(--muted)}
 .spinner{display:inline-block;width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin-right:8px}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* ---- DISPARITY BARS ---- */
 .bar-row{display:flex;align-items:center;gap:10px;margin:5px 0;font-size:.8rem}
 .bar-label{width:120px;color:var(--muted);flex-shrink:0}
 .bar-track{flex:1;background:#0d2030;border-radius:4px;height:10px;overflow:hidden}
@@ -109,7 +105,6 @@ const API = 'http://127.0.0.1:8000';
 let _data = {};
 let _activeSport = 'all';
 
-// ------------------------------------------------------------------ helpers
 function fmt(v, dec=1) {
   if (v == null || v === '') return '\u2014';
   return typeof v === 'number' ? v.toFixed(dec) : v;
@@ -132,7 +127,6 @@ function densityBadge(wx) {
   return `<span class="badge badge-density">&#961; ${rho.toFixed(4)} kg/m&#179; (${fmt(pct,1)}% ISA)</span>`;
 }
 
-// ------------------------------------------------------------------ fetch
 async function loadDashboard() {
   document.getElementById('loading').style.display = 'block';
   document.getElementById('game-list').style.display = 'none';
@@ -149,13 +143,10 @@ async function loadDashboard() {
   }
 }
 
-// ------------------------------------------------------------------ render
 function allGames() {
   const games = [];
   for (const [sport, sd] of Object.entries(_data)) {
-    for (const g of (sd.games || [])) {
-      games.push({...g, _sport: sport});
-    }
+    for (const g of (sd.games || [])) games.push({...g, _sport: sport});
   }
   return games;
 }
@@ -169,12 +160,10 @@ function renderGames() {
   document.getElementById('loading').style.display = 'none';
   list.style.display = 'flex';
   if (!games.length) {
-    list.innerHTML = '<div style="color:var(--muted);padding:30px;text-align:center">No games found for this sport today. Off-season is normal.</div>';
+    list.innerHTML = '<div style="color:var(--muted);padding:30px;text-align:center">No games found.</div>';
     return;
   }
-  for (const g of games) {
-    list.appendChild(buildGameRow(g));
-  }
+  for (const g of games) list.appendChild(buildGameRow(g));
 }
 
 function buildGameRow(g) {
@@ -182,10 +171,7 @@ function buildGameRow(g) {
   wrapper.className = 'game-row';
 
   const mh = g.implied_matrix_home || {};
-  const ma = g.implied_matrix_away || {};
-  const kDisp  = mh.kalshi_disparity;
-  const pDisp  = mh.poly_disparity;
-  const maxDisp = Math.max(kDisp ?? -1, pDisp ?? -1);
+  const maxDisp = Math.max(mh.kalshi_disparity ?? -1, mh.poly_disparity ?? -1);
   const wx = (g.venue || {}).weather_context;
 
   const header = document.createElement('div');
@@ -197,8 +183,7 @@ function buildGameRow(g) {
       ${maxDisp >= 0 ? `<span class="badge ${badgeClass(maxDisp)}">${fmt(maxDisp,1)}% edge</span>` : ''}
       ${densityBadge(wx)}
       ${g.venue?.name ? `<span class="badge badge-grey">${g.venue.name}</span>` : ''}
-    </div>
-  `;
+    </div>`;
 
   const detail = document.createElement('div');
   detail.className = 'detail-panel';
@@ -210,7 +195,7 @@ function buildGameRow(g) {
     if (!isOpen) detail.classList.add('open');
   });
 
-  detail.querySelectorAll && setTimeout(() => {
+  setTimeout(() => {
     detail.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -228,16 +213,11 @@ function buildGameRow(g) {
   return wrapper;
 }
 
-// ------------------------------------------------------------------ detail HTML
 function buildDetailHTML(g) {
-  const id = g.game_id;
+  const id   = g.game_id;
   const tabs = ['Moneyline','Spread','Total O/U','Pred Markets','Disparity','Power Method','Weather & Air Density'];
   const keys = ['ml','spread','total','pred','disp','power','weather'];
-
-  let tabBar = tabs.map((t,i) =>
-    `<button class="tab-btn${i===0?' active':''}" data-tab="${keys[i]}">${t}</button>`
-  ).join('');
-
+  const tabBar = tabs.map((t,i)=>`<button class="tab-btn${i===0?' active':''}" data-tab="${keys[i]}">${t}</button>`).join('');
   return `
     <div class="tab-bar">${tabBar}</div>
     <div class="tab-content active" id="tab-ml-${id}">${buildMLTab(g)}</div>
@@ -246,8 +226,7 @@ function buildDetailHTML(g) {
     <div class="tab-content" id="tab-pred-${id}">${buildPredTab(g)}</div>
     <div class="tab-content" id="tab-disp-${id}">${buildDispTab(g)}</div>
     <div class="tab-content" id="tab-power-${id}">${buildPowerTab(g)}</div>
-    <div class="tab-content" id="tab-weather-${id}">${buildWeatherTab(g)}</div>
-  `;
+    <div class="tab-content" id="tab-weather-${id}">${buildWeatherTab(g)}</div>`;
 }
 
 function buildMLTab(g) {
@@ -255,35 +234,23 @@ function buildMLTab(g) {
   if (!Object.keys(pb).length) return '<p style="color:var(--muted);padding:10px">No moneyline data.</p>';
   let rows = '';
   for (const [book, bd] of Object.entries(pb)) {
-    rows += `<tr>
-      <td>${book}</td>
-      <td class="num">${fmtAm(bd.away_american)}</td>
-      <td class="num">${fmtAm(bd.home_american)}</td>
-      <td class="num">${fmt(bd.away_raw,2)}%</td>
-      <td class="num">${fmt(bd.home_raw,2)}%</td>
-      <td class="num">${fmt(bd.away_nv_prop,2)}%</td>
-      <td class="num">${fmt(bd.home_nv_prop,2)}%</td>
-      <td class="num">${fmt(bd.vig_pct,3)}%</td>
-    </tr>`;
+    rows += `<tr><td>${book}</td>
+      <td class="num">${fmtAm(bd.away_american)}</td><td class="num">${fmtAm(bd.home_american)}</td>
+      <td class="num">${fmt(bd.away_raw,2)}%</td><td class="num">${fmt(bd.home_raw,2)}%</td>
+      <td class="num">${fmt(bd.away_nv_prop,2)}%</td><td class="num">${fmt(bd.home_nv_prop,2)}%</td>
+      <td class="num">${fmt(bd.vig_pct,3)}%</td></tr>`;
   }
   const c = g.consensus || {};
   const ch = c.home || {}; const ca = c.away || {};
-  return `<table><thead><tr>
-    <th>Book</th><th class="num">Away ML</th><th class="num">Home ML</th>
+  return `<table><thead><tr><th>Book</th><th class="num">Away ML</th><th class="num">Home ML</th>
     <th class="num">Away Raw%</th><th class="num">Home Raw%</th>
     <th class="num">Away NV%</th><th class="num">Home NV%</th>
-    <th class="num">Vig%</th>
-  </tr></thead><tbody>${rows}</tbody>
-  <tfoot><tr style="background:#061520">
-    <td><b>CONSENSUS</b></td>
-    <td class="num hl">${fmtAm(ca.american)}</td>
-    <td class="num hl">${fmtAm(ch.american)}</td>
-    <td class="num">${fmt(ca.raw_implied,2)}%</td>
-    <td class="num">${fmt(ch.raw_implied,2)}%</td>
-    <td class="num hl">${fmt(ca.no_vig_implied,2)}%</td>
-    <td class="num hl">${fmt(ch.no_vig_implied,2)}%</td>
-    <td></td>
-  </tr></tfoot></table>`;
+    <th class="num">Vig%</th></tr></thead><tbody>${rows}</tbody>
+  <tfoot><tr style="background:#061520"><td><b>CONSENSUS</b></td>
+    <td class="num hl">${fmtAm(ca.american)}</td><td class="num hl">${fmtAm(ch.american)}</td>
+    <td class="num">${fmt(ca.raw_implied,2)}%</td><td class="num">${fmt(ch.raw_implied,2)}%</td>
+    <td class="num hl">${fmt(ca.no_vig_implied,2)}%</td><td class="num hl">${fmt(ch.no_vig_implied,2)}%</td>
+    <td></td></tr></tfoot></table>`;
 }
 
 function buildSpreadTab(g) {
@@ -293,8 +260,7 @@ function buildSpreadTab(g) {
     const sh = bd.spreads?.home || {}; const sa = bd.spreads?.away || {};
     rows += `<tr><td>${book}</td>
       <td class="num">${fmt(sa.point,1)}</td><td class="num">${fmtAm(sa.american)}</td><td class="num">${fmt(sa.implied,2)}%</td>
-      <td class="num">${fmt(sh.point,1)}</td><td class="num">${fmtAm(sh.american)}</td><td class="num">${fmt(sh.implied,2)}%</td>
-    </tr>`;
+      <td class="num">${fmt(sh.point,1)}</td><td class="num">${fmtAm(sh.american)}</td><td class="num">${fmt(sh.implied,2)}%</td></tr>`;
   }
   if (!rows) return '<p style="color:var(--muted);padding:10px">No spread data.</p>';
   return `<table><thead><tr><th>Book</th>
@@ -310,8 +276,7 @@ function buildTotalTab(g) {
     const ov = bd.totals?.Over || {}; const un = bd.totals?.Under || {};
     rows += `<tr><td>${book}</td>
       <td class="num">${fmt(ov.point,1)}</td><td class="num">${fmtAm(ov.american)}</td><td class="num">${fmt(ov.implied,2)}%</td>
-      <td class="num">${fmt(un.point,1)}</td><td class="num">${fmtAm(un.american)}</td><td class="num">${fmt(un.implied,2)}%</td>
-    </tr>`;
+      <td class="num">${fmt(un.point,1)}</td><td class="num">${fmtAm(un.american)}</td><td class="num">${fmt(un.implied,2)}%</td></tr>`;
   }
   if (!rows) return '<p style="color:var(--muted);padding:10px">No totals data.</p>';
   return `<table><thead><tr><th>Book</th>
@@ -323,8 +288,7 @@ function buildTotalTab(g) {
 function buildPredTab(g) {
   const k = g.kalshi || {}; const p = g.polymarket || {};
   const mh = g.implied_matrix_home || {}; const ma = g.implied_matrix_away || {};
-  return `<table><thead><tr>
-    <th>Market</th><th class="num">Home Imp%</th><th class="num">Away Imp%</th>
+  return `<table><thead><tr><th>Market</th><th class="num">Home Imp%</th><th class="num">Away Imp%</th>
     <th class="num">Home ML</th><th class="num">H Disparity</th><th class="num">H EV%</th>
   </tr></thead><tbody>
     <tr><td>Kalshi</td>
@@ -332,36 +296,32 @@ function buildPredTab(g) {
       <td class="num">${k.home_implied != null ? fmt(100-k.home_implied,2)+'%' : '\u2014'}</td>
       <td class="num">${fmtAm(k.american)}</td>
       <td class="num ${badgeClass(mh.kalshi_disparity)}">${fmt(mh.kalshi_disparity,2)}%</td>
-      <td class="num ${(mh.kalshi_ev??0)>=0?'pos':'neg'}">${fmt(mh.kalshi_ev,2)}%</td>
-    </tr>
+      <td class="num ${(mh.kalshi_ev??0)>=0?'pos':'neg'}">${fmt(mh.kalshi_ev,2)}%</td></tr>
     <tr><td>Polymarket</td>
       <td class="num hl">${fmt(p.home_implied,2)}%</td>
       <td class="num">${fmt(p.away_implied,2)}%</td>
       <td class="num">${fmtAm(p.american)}</td>
       <td class="num ${badgeClass(mh.poly_disparity)}">${fmt(mh.poly_disparity,2)}%</td>
-      <td class="num ${(mh.poly_ev??0)>=0?'pos':'neg'}">${fmt(mh.poly_ev,2)}%</td>
-    </tr>
+      <td class="num ${(mh.poly_ev??0)>=0?'pos':'neg'}">${fmt(mh.poly_ev,2)}%</td></tr>
   </tbody></table>
   ${p.question ? `<p style="font-size:.78rem;color:var(--muted);margin-top:8px">Poly Q: ${p.question}</p>` : ''}`;
 }
 
 function buildDispTab(g) {
   const mh = g.implied_matrix_home || {};
-  const bars = [
+  return [
     ['Kalshi Disp', mh.kalshi_disparity],
     ['Poly Disp',   mh.poly_disparity],
     ['Kalshi EV%',  mh.kalshi_ev],
     ['Poly EV%',    mh.poly_ev],
-  ];
-  return bars.map(([label, val]) => {
+  ].map(([label, val]) => {
     if (val == null) return `<div class="bar-row"><span class="bar-label">${label}</span><span style="color:var(--muted)">&mdash;</span></div>`;
-    const w = Math.min(Math.abs(val) * 10, 100);
+    const w     = Math.min(Math.abs(val) * 10, 100);
     const color = val >= 3 ? 'var(--green)' : val >= 1 ? 'var(--yellow)' : 'var(--muted)';
     return `<div class="bar-row">
       <span class="bar-label">${label}</span>
       <div class="bar-track"><div class="bar-fill" style="width:${w}%;background:${color}"></div></div>
-      <span style="color:${color};font-size:.8rem;width:50px;text-align:right">${fmt(val,2)}%</span>
-    </div>`;
+      <span style="color:${color};font-size:.8rem;width:50px;text-align:right">${fmt(val,2)}%</span></div>`;
   }).join('');
 }
 
@@ -371,144 +331,121 @@ function buildPowerTab(g) {
   let rows = '';
   for (const [book, bd] of Object.entries(pb)) {
     rows += `<tr><td>${book}</td>
-      <td class="num">${fmt(bd.away_raw,2)}%</td>
-      <td class="num">${fmt(bd.away_nv_prop,2)}%</td>
-      <td class="num">${fmt(bd.away_nv_power,2)}%</td>
-      <td class="num">${fmt(bd.home_raw,2)}%</td>
-      <td class="num">${fmt(bd.home_nv_prop,2)}%</td>
-      <td class="num">${fmt(bd.home_nv_power,2)}%</td>
-    </tr>`;
+      <td class="num">${fmt(bd.away_raw,2)}%</td><td class="num">${fmt(bd.away_nv_prop,2)}%</td><td class="num">${fmt(bd.away_nv_power,2)}%</td>
+      <td class="num">${fmt(bd.home_raw,2)}%</td><td class="num">${fmt(bd.home_nv_prop,2)}%</td><td class="num">${fmt(bd.home_nv_power,2)}%</td></tr>`;
   }
   return `<table><thead><tr><th>Book</th>
     <th class="num">Away Raw%</th><th class="num">Away Prop%</th><th class="num">Away Power%</th>
     <th class="num">Home Raw%</th><th class="num">Home Prop%</th><th class="num">Home Power%</th>
   </tr></thead><tbody>${rows}</tbody>
-  <tfoot><tr style="background:#061520">
-    <td><b>CONSENSUS</b></td><td></td>
-    <td></td><td class="num hl">${fmt(ma.power_odds,2)}%</td>
-    <td></td><td></td><td class="num hl">${fmt(mh.power_odds,2)}%</td>
-  </tr></tfoot></table>`;
+  <tfoot><tr style="background:#061520"><td><b>CONSENSUS</b></td><td></td><td></td>
+    <td class="num hl">${fmt(ma.power_odds,2)}%</td><td></td><td></td>
+    <td class="num hl">${fmt(mh.power_odds,2)}%</td></tr></tfoot></table>`;
 }
 
-// ---- WEATHER TAB — Imperial primary units, game-local forecast time ----
+// ---- WEATHER TAB — Imperial primary, ET times, full ISA physics ----
 function buildWeatherTab(g) {
   const v  = g.venue || {};
   const wx = v.weather_context;
 
-  // Elevation in feet — prefer backend-computed, fall back to raw conversion
-  const elevFt = wx?.mapped_elevation_ft
-    ?? (v.elevation != null ? v.elevation * 3.28084 : null);
-  const elevM  = wx?.mapped_elevation_m ?? v.elevation;
+  const elevFt = wx?.elevation_ft ?? wx?.mapped_elevation_ft
+    ?? (v.elevation != null ? v.elevation : null);   // workbook already in ft
+  const elevM  = wx?.elevation_m ?? wx?.mapped_elevation_m
+    ?? (v.elevation != null ? Math.round(v.elevation * 0.3048) : null);
 
-  // Venue header chips
   const venueInfo = `
     <div class="venue-row">
       ${v.name  ? `<div class="venue-chip"><b>${v.name}</b></div>` : ''}
       ${v.city  ? `<div class="venue-chip">${v.city}${v.state ? ', '+v.state : ''}</div>` : ''}
       ${elevFt != null
-          ? `<div class="venue-chip">Elev: <b>${Math.round(elevFt).toLocaleString()} ft</b>${elevM != null ? ' <span style="font-size:.72rem">('+Math.round(elevM)+' m)</span>' : ''}</div>`
-          : ''}
+        ? `<div class="venue-chip">Elev: <b>${Math.round(elevFt).toLocaleString()} ft</b>${elevM != null ? ' <span style="font-size:.72rem">('+Math.round(elevM)+' m)</span>' : ''}</div>`
+        : ''}
       ${v.orientation_label
-          ? `<div class="venue-chip">Orientation: <b>${v.orientation_label}</b>${v.orientation_deg != null ? ' ('+v.orientation_deg.toFixed(0)+'&deg;)' : ''}</div>`
-          : ''}
+        ? `<div class="venue-chip">Orientation: <b>${v.orientation_label}</b>${v.orientation_deg != null ? ' ('+v.orientation_deg.toFixed(0)+'&deg;)' : ''}</div>`
+        : ''}
       ${v.lat != null
-          ? `<div class="venue-chip">Coords: <b>${v.lat.toFixed(4)}, ${v.lon.toFixed(4)}</b></div>`
-          : ''}
+        ? `<div class="venue-chip">Coords: <b>${v.lat.toFixed(4)}, ${v.lon.toFixed(4)}</b></div>`
+        : ''}
     </div>`;
 
-  if (!wx) {
-    return venueInfo + '<div class="wx-unavail">&#9888; Weather data not available &mdash; restart server after updating to v8 integration.</div>';
-  }
-  if (wx.status !== 'ok') {
-    return venueInfo + `<div class="wx-unavail">&#9888; Weather status: <b>${wx.status}</b>${wx.detail ? ' &mdash; '+wx.detail : ''}</div>`;
-  }
+  if (!wx) return venueInfo + '<div class="wx-unavail">&#9888; No weather data — restart server.</div>';
+  if (wx.status !== 'ok') return venueInfo + `<div class="wx-unavail">&#9888; Status: <b>${wx.status}</b></div>`;
 
-  const indoor = wx.is_indoor;
-  const indEst = wx.indoor_estimate;
+  // Source badge
+  const srcBadge = wx.wx_source ? `<span class="wx-src">${wx.wx_source}</span>` : '';
 
-  // Precipitation — inches primary
+  // Timing block — game time ET + forecast slot ET
+  const gameET     = wx.game_time_et_full || wx.game_time_et || wx.game_time_raw || '\u2014';
+  const forecastET = wx.forecast_hour_et_full || wx.forecast_hour_et || wx.forecast_hour_local || wx.forecast_hour_utc || '\u2014';
+  const timingBlock = `<div class="wx-timing">
+    <div>&#127942; Game Time: <b>${gameET}</b> ET</div>
+    <div>&#127769; Forecast Slot: <b>${forecastET}</b>${srcBadge}</div>
+  </div>`;
+
+  // Precipitation
   const precipIn = wx.precipitation_inh ?? (wx.precipitation_mmh != null ? wx.precipitation_mmh / 25.4 : null);
-  const precipMm = wx.precipitation_mmh;
 
-  // Weather cards — Imperial primary, metric secondary
+  // Weather cards — °F, mph, inHg, in/h primary
   const cards = [
-    {
-      label: 'Air Density',
-      val:   `${wx.air_density_kgm3 != null ? wx.air_density_kgm3.toFixed(5) : '\u2014'} kg/m&#179;`,
-      sub:   `${fmt(wx.density_pct_of_isa_sealevel,2)}% of ISA sea-level`
-    },
-    {
-      label: 'Station Pressure',
-      val:   `${fmt(wx.station_pressure_inhg,3)} inHg`,
-      sub:   `${fmt(wx.station_pressure_hpa,1)} hPa`
-    },
-    {
-      label: 'Temperature',
-      val:   `${fmt(wx.temperature_f,1)} &#176;F`,
-      sub:   `${fmt(wx.temperature_c,1)} &#176;C`
-    },
-    {
-      label: 'Rel. Humidity',
-      val:   `${fmt(wx.relative_humidity_pct,0)}%`,
-      sub:   'At venue elevation'
-    },
-    {
-      label: 'Wind Speed',
-      val:   `${fmt(wx.wind_speed_mph,1)} mph`,
-      sub:   `${fmt(wx.wind_speed_kmh,1)} km/h`
-    },
-    {
-      label: 'Precipitation',
-      val:   `${precipIn != null ? precipIn.toFixed(3) : '\u2014'} in/h`,
-      sub:   `${fmt(precipMm,2)} mm/h &mdash; forecast at game time`
-    },
+    { label: 'Air Density',
+      val: `${wx.air_density_kgm3 != null ? wx.air_density_kgm3.toFixed(5) : '\u2014'} kg/m&#179;`,
+      sub: `${fmt(wx.density_pct_of_isa_sealevel,2)}% ISA sea-level<br>${fmt(wx.density_pct_of_isa_elevation,2)}% ISA @ elev` },
+    { label: 'Station Pressure',
+      val: `${fmt(wx.station_pressure_inhg,3)} inHg`,
+      sub: `${fmt(wx.station_pressure_hpa,1)} hPa` },
+    { label: 'Temperature',
+      val: `${fmt(wx.temperature_f,1)} &#176;F`,
+      sub: `${fmt(wx.temperature_c,1)} &#176;C` },
+    { label: 'Rel. Humidity',
+      val: `${fmt(wx.relative_humidity_pct,0)}%`,
+      sub: 'At venue elevation' },
+    { label: 'Wind Speed',
+      val: `${fmt(wx.wind_speed_mph,1)} mph`,
+      sub: `${fmt(wx.wind_speed_kmh,1)} km/h` },
+    { label: 'Precipitation',
+      val: `${precipIn != null ? precipIn.toFixed(3) : '\u2014'} in/h`,
+      sub: `${fmt(wx.precipitation_mmh,2)} mm/h` },
   ];
-
   const grid = `<div class="wx-grid">${
     cards.map(c => `<div class="wx-card"><small>${c.label}</small><b>${c.val}</b><span>${c.sub}</span></div>`).join('')
   }</div>`;
 
-  // ISA reference block — feet + inHg primary
-  const isa        = wx.isa_at_elevation || {};
-  const isaInhg    = isa.pressure_inhg ?? (isa.pressure_hpa != null ? isa.pressure_hpa / 33.8639 : null);
-  const elevLabel  = elevFt != null
-    ? `${Math.round(elevFt).toLocaleString()} ft`
-    : (elevM != null ? `${Math.round(elevM)} m` : '—');
-
-  // Forecast time — local game-time timezone if available, UTC fallback
-  const forecastDisplay = wx.forecast_hour_local
-    ? `<b>${wx.forecast_hour_local}</b> (game-time local)`
-    : (wx.forecast_hour_utc ? `<b>${wx.forecast_hour_utc}</b> UTC` : '\u2014');
+  // ISA reference block
+  const isa      = wx.isa_at_elevation || {};
+  const isaInhg  = isa.pressure_inhg ?? (isa.pressure_hpa ? isa.pressure_hpa / 33.8639 : null);
+  const isaElevFt= isa.elevation_ft ?? elevFt;
+  const isaElevM = isa.elevation_m  ?? elevM;
+  const elevLabel= isaElevFt != null
+    ? `${Math.round(isaElevFt).toLocaleString()} ft (${isaElevM != null ? Math.round(isaElevM)+' m' : ''})`
+    : (isaElevM != null ? `${Math.round(isaElevM)} m` : '\u2014');
 
   const isaBlock = `<div class="wx-isa">
-    ISA at ${elevLabel} elevation:
-    <b>${isaInhg != null ? isaInhg.toFixed(3) : '\u2014'} inHg</b>
+    &#128208; ISA @ ${elevLabel}:
+    &nbsp;<b>${isaInhg != null ? isaInhg.toFixed(3) : '\u2014'} inHg</b>
+    &nbsp;(${isa.pressure_hpa != null ? isa.pressure_hpa.toFixed(2) : '\u2014'} hPa)
     &nbsp;/&nbsp;
     <b>${isa.density_kgm3 != null ? isa.density_kgm3.toFixed(5) : '\u2014'} kg/m&#179;</b>
-    &nbsp;&bull;&nbsp; Forecast: ${forecastDisplay}
   </div>`;
 
-  // Indoor block — °F primary
+  // Indoor block
   let indoorBlock = '';
-  if (indoor && indEst) {
-    const indTempF = indEst.assumed_temp_f ?? (indEst.assumed_temp_c * 9/5 + 32);
+  const indEst = wx.indoor_estimate;
+  if (wx.is_indoor && indEst) {
     indoorBlock = `<div class="wx-indoor">
-      &#127959; <b>Indoor / Roofed Venue</b> &mdash; HVAC Baseline Estimate<br>
-      Density at ${indTempF.toFixed(0)}&#176;F / ${indEst.assumed_rh_pct}% RH:
+      &#127959; <b>Indoor / Roofed Venue</b> &mdash; HVAC Baseline<br>
+      ${indEst.assumed_temp_f}&#176;F / ${indEst.assumed_rh_pct}% RH &rarr;
       <b>${indEst.density_kgm3 != null ? indEst.density_kgm3.toFixed(5) : '\u2014'} kg/m&#179;</b>
       (${indEst.pct_vs_outdoor >= 0 ? '+' : ''}${fmt(indEst.pct_vs_outdoor,2)}% vs outdoor)<br>
-      <small>${indEst.note}</small>
-    </div>`;
-  } else if (indoor) {
-    indoorBlock = `<div class="wx-indoor">&#127959; Indoor/roofed venue. Outdoor-at-venue values shown as reference.</div>`;
+      <small>${indEst.note}</small></div>`;
+  } else if (wx.is_indoor) {
+    indoorBlock = `<div class="wx-indoor">&#127959; Indoor/roofed venue. Outdoor values shown for reference.</div>`;
   }
 
-  const note = `<div class="wx-note">Station pressure is absolute surface pressure &mdash; not sea-level pressure. Values reflect the closest hourly open-meteo forecast slot to scheduled game time. Exact indoor density requires venue temperature/RH instrumentation; the HVAC baseline is an estimate.</div>`;
+  const note = `<div class="wx-note">Station pressure = absolute surface pressure, not sea-level pressure. Forecast slot is the hourly weather reading closest to scheduled game time. Indoor density requires instrumentation; HVAC baseline is an estimate.</div>`;
 
-  return venueInfo + grid + isaBlock + indoorBlock + note;
+  return venueInfo + timingBlock + grid + isaBlock + indoorBlock + note;
 }
 
-// ------------------------------------------------------------------ sport tabs
 document.getElementById('sport-tabs').addEventListener('click', e => {
   const btn = e.target.closest('.sport-tab');
   if (!btn) return;
@@ -519,7 +456,6 @@ document.getElementById('sport-tabs').addEventListener('click', e => {
 });
 
 document.getElementById('refresh-btn').addEventListener('click', loadDashboard);
-
 loadDashboard();
 </script>
 </body>
